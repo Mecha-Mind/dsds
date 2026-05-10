@@ -1,0 +1,234 @@
+@if (!$ThemostsellingEcommerceproducts->isEmpty())
+    <div id="desktop_content_themostsellingproducts">
+        <div class="row pt-5">
+            <div class="container">
+                <div class="row categoryheadlinetext d-flex align-items-center justify-content-end text-right">
+                    <div class="col-6 d-flex align-items-center justify-content-start text-right">
+                        <a href="{{ route('EcommerceMostSaleProducts') }}" class="Mediumfont decorationnone">
+                            <span class="btn btn-secondary Primarybackground">
+                                عرض المزيد
+                            </span>
+                        </a>
+                    </div>
+                    <div class="col-6 d-flex align-items-center justify-content-end text-right Primarycolor">
+                        الأكثر مبيعا
+                    </div>
+                </div>
+                <div class="row g-4 justify-content-center pt-3">
+                    @foreach ($ThemostsellingEcommerceproducts as $ThemostsellingEcommerceproduct)
+                        @php
+                            $Product = $Products->firstWhere('product_id', $ThemostsellingEcommerceproduct->product_id);
+                            if (!$Product || !$Product->product_image) {
+                                continue;
+                            }
+                        @endphp
+
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div
+                                class="product-card h-100 d-flex flex-column border rounded-3 overflow-hidden shadow-sm">
+                                <!-- Product Image -->
+                                <div class="product-image-container ratio ratio-1x1">
+                                    <a href="{{ route('ProductDetails', $ThemostsellingEcommerceproduct->product_id) }}"
+                                        class="d-block h-100 w-100">
+                                        <img class="object-fit-cover w-100 h-100"
+                                            src="{{ url('/images/productsimages/' . $Product->product_image) }}"
+                                            alt="{{ $Product->product_name }}" loading="lazy">
+                                    </a>
+                                </div>
+
+                                <!-- Product Info -->
+                                <div class="product-info p-3 flex-grow-1 d-flex flex-column">
+                                    <!-- Description -->
+                                    <div class="product-description text-end mb-2 text-truncate-3"
+                                        style="direction: rtl">
+                                        {{ $Product->product_name }}
+                                    </div>
+
+                                    <!-- Price -->
+                                    <div
+                                        class="price-section d-flex align-items-center justify-content-end gap-2 mt-auto">
+                                        @if ($ThemostsellingEcommerceproduct->ecommerceproduct_appearinthelistofoffers == '1')
+                                            <span class="text-danger fw-bold fs-5">
+                                                {{ $Product->product_offerprice }} جنية
+                                            </span>
+                                            <del class="text-muted fs-6">
+                                                {{ $Product->product_sellprice }} جنية
+                                            </del>
+                                        @else
+                                            <span class="fw-bold fs-5">
+                                                {{ $Product->product_sellprice }} جنية
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <!-- Add to Cart Button -->
+                                <div class="p-3 pt-0">
+                                    @if (session('customer_name') === null)
+                                        <a href="{{ route('CustomerLogin') }}"
+                                            class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2">
+                                            <button class="btn apponwer_systemprimarybtn">
+                                                <i class="fas fa-dolly-flatbed"></i></button>
+                                            <span>إضافة للسلة</span>
+                                        </a>
+                                    @else
+                                        <form method="post"
+                                            action="{{ route('ProductDetailsPost', $ThemostsellingEcommerceproduct->product_id) }}"
+                                            class="w-100">
+                                            @csrf
+                                            @method('post')
+                                            <button type="submit"
+                                                class="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center gap-1">
+                                                <span
+                                                    class="btn apponwer_systemprimarybtn d-flex align-items-center justify-content-center p-0">
+                                                    <i class="fas fa-dolly-flatbed fs-6"></i>
+                                                </span>
+                                                <span class="fs-6">إضافة للسلة</span>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+
+                                <div class="p-3 pt-0">
+                                    @php
+                                        $mainphone = '2' . $ecommerceSharedData['branch']->branch_phone;
+                                        $Message =
+                                            "مرحباً 👋\n\n" .
+                                            "هل يمكنني الحصول على المزيد من المعلومات عن المنتج:\n" .
+                                            "🔹 {$Product->product_name}\n\n" .
+                                            'هذا الطلب مقدم من المتجر الإلكتروني الخاص بكم ✅';
+
+                                        $encodedMessage = urlencode($Message);
+                                    @endphp
+
+                                    <a href="https://wa.me/{{ $mainphone }}?text={{ $encodedMessage }}"
+                                        class="btn btn-success w-100 d-flex align-items-center justify-content-center gap-2"
+                                        target="_blank" rel="noopener">
+                                        <i class="fab fa-whatsapp"></i>
+                                        <span> اطلب عبر الواتساب</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mobile_content_themostsellingproducts">
+        <div class="row pt-2">
+            <div class="col-12 p-3 m-auto">
+                <div class="row categorytitlehomepagemobile d-flex align-items-center justify-content-end text-right">
+                    <div class="col-6 d-flex align-items-center justify-content-start text-right">
+                        <a href="{{ route('EcommerceMostSaleProducts') }}" class="Mediumfont decorationnone">
+                            <span class="btn btn-secondary Primarybackground">
+                                عرض المزيد
+                            </span>
+                        </a>
+                    </div>
+                    <div class="col-6 d-flex align-items-center justify-content-end text-right Primarycolor">
+                        الأكثر مبيعا
+                    </div>
+
+                </div>
+                <div class="row g-3 p-2 m-auto">
+                    @foreach ($ThemostsellingEcommerceproducts as $ThemostsellingEcommerceproduct)
+                        @php
+                            $Product = $Products->firstWhere('product_id', $ThemostsellingEcommerceproduct->product_id);
+                            if (!$Product || !$Product->product_image) {
+                                continue;
+                            }
+                        @endphp
+
+                        <div class="col-6 m-auto pb-2">
+                            <div
+                                class="product-card-mobile h-100 d-flex flex-column border rounded-3 overflow-hidden shadow-sm p-2">
+                                <!-- Product Image -->
+                                <div class="product-image-mobile ratio ratio-1x1 mb-2">
+                                    <a href="{{ route('ProductDetails', $ThemostsellingEcommerceproduct->product_id) }}"
+                                        class="d-block h-100 w-100">
+                                        <img class="object-fit-cover w-100 h-100"
+                                            src="{{ url('/images/productsimages/' . $Product->product_image) }}"
+                                            alt="{{ $Product->product_name }}" loading="lazy">
+                                    </a>
+                                </div>
+
+                                <!-- Product Info -->
+                                <div class="product-info-mobile flex-grow-1 d-flex flex-column">
+                                    <!-- Description -->
+                                    <div class="product-description-mobile text-end text-truncate-2 mb-1"
+                                        style="direction: rtl">
+                                        {{ $Product->product_name }}
+                                    </div>
+
+                                    <!-- Price -->
+                                    <div class="price-mobile d-flex align-items-center justify-content-start gap-2"
+                                        style="direction: rtl">
+                                        @if ($ThemostsellingEcommerceproduct->ecommerceproduct_appearinthelistofoffers == '1')
+                                            <span class="text-danger fw-bold">
+                                                {{ $Product->product_offerprice }} جنية
+                                            </span>
+                                            <del class="text-muted small">
+                                                {{ $Product->product_sellprice }} جنية
+                                            </del>
+                                        @else
+                                            <span class="fw-bold">
+                                                {{ $Product->product_sellprice }} جنية
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <!-- Add to Cart Button -->
+                                <div class="add-to-cart-mobile mt-2">
+                                    @if (session('customer_name') === null)
+                                        <a href="{{ route('CustomerLogin') }}"
+                                            class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2">
+                                            <i class="fas fa-dolly-flatbed"></i>
+                                            <span>إضافة للسلة</span>
+                                        </a>
+                                    @else
+                                        <form method="post"
+                                            action="{{ route('ProductDetailsPost', $ThemostsellingEcommerceproduct->product_id) }}"
+                                            class="w-100">
+                                            @csrf
+                                            @method('post')
+                                            <button type="submit"
+                                                class="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center gap-1">
+                                                <span
+                                                    class="btn apponwer_systemprimarybtn d-flex align-items-center justify-content-center p-0">
+                                                    <i class="fas fa-dolly-flatbed fs-6"></i>
+                                                </span>
+                                                <span class="fs-6">إضافة للسلة</span>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+
+                                <div class="add-to-cart-mobile mt-2">
+
+                                    @php
+                                        $mainphone = '2' . $ecommerceSharedData['branch']->branch_phone;
+                                        $Message =
+                                            "مرحباً 👋\n\n" .
+                                            "هل يمكنني الحصول على المزيد من المعلومات عن المنتج:\n" .
+                                            "🔹 {$Product->product_name}\n\n" .
+                                            'هذا الطلب مقدم من المتجر الإلكتروني الخاص بكم ✅';
+
+                                        $encodedMessage = urlencode($Message);
+                                    @endphp
+                                    <a href="https://wa.me/{{ $mainphone }}?text={{ $encodedMessage }}"
+                                        class="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center gap-1">
+                                        <i class="fab fa-whatsapp"></i>
+                                        <span> اطلب عبر الواتساب</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+@endif

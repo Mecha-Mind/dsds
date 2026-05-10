@@ -1,0 +1,2460 @@
+<?php
+
+require __DIR__ . '/auth.php';
+
+use App\Http\Controllers\Ecommerce\Checkout\CheckoutController;
+use App\Http\Controllers\Ecommerce\Customer\CustomerCode\CustomerCodeController;
+use App\Http\Controllers\Ecommerce\Customer\CustomerLogin\CustomerLoginController;
+use App\Http\Controllers\Ecommerce\Customer\CustomerWelcome\CustomerWelcomeController;
+use App\Http\Controllers\Ecommerce\Customer\NewCustomer\NewCustomerController;
+use App\Http\Controllers\Ecommerce\EcommerceAllCategories\EcommerceAllCategoriesController;
+use App\Http\Controllers\Ecommerce\EcommerceContactUs\EcommerceContactUsController;
+use App\Http\Controllers\Ecommerce\EcommerceKnowAboutUs\EcommerceKnowAboutUsController;
+use App\Http\Controllers\Ecommerce\EcommerceOffers\EcommerceOffersController;
+use App\Http\Controllers\Ecommerce\EcommerceWelcomeController;
+use App\Http\Controllers\Ecommerce\Maintenance\UserMaintenanceController;
+use App\Http\Controllers\Ecommerce\PersonalPage\UserPersonalPageController;
+use App\Http\Controllers\Ecommerce\PrivacyPolicy\PrivacyPolicyController;
+use App\Http\Controllers\Ecommerce\ProductDetails\ProductDetailsController;
+use App\Http\Controllers\Ecommerce\Products\CategoryProductController;
+use App\Http\Controllers\Ecommerce\Products\CompanyProductController;
+use App\Http\Controllers\Ecommerce\Products\EcommerceAllProductsController;
+use App\Http\Controllers\Ecommerce\Products\EcommerceMostSaleProductsController;
+use App\Http\Controllers\Ecommerce\Products\EcommerceProductsWithOffersController;
+use App\Http\Controllers\Ecommerce\Products\SubcategoryProductController;
+use App\Http\Controllers\Ecommerce\ShoppingCart\ShoppingCartController;
+use App\Http\Controllers\Ecommerce\Wishlist\WishlistController;
+use App\Http\Controllers\ShopController;
+use Illuminate\Support\Facades\Route;
+
+// Ecommerce
+Route::prefix('/')->group(function () {
+
+    Route::get('/', [EcommerceWelcomeController::class, 'index'])->name('home');
+    Route::get('/profile', [EcommerceWelcomeController::class, 'index'])->name('profile.edit');
+
+    Route::prefix('Customer')->group(function () {
+
+        Route::prefix('Login')->group(function () {
+            Route::get('/', [CustomerLoginController::class, 'CustomerLogin'])->name('CustomerLogin');
+            Route::post('/', [CustomerLoginController::class, 'CustomerLoginPost'])->name('CustomerLoginPost')->middleware('throttle:1,0.05');
+        });
+
+        Route::prefix('New')->group(function () {
+            Route::get('/', [CustomerLoginController::class, 'CustomerLogin'])->name('NewCustomer');
+            Route::post('/', [NewCustomerController::class, 'NewCustomerPost'])->name('NewCustomerPost')->middleware('throttle:1,0.05');
+        });
+
+        Route::prefix('Code')->group(function () {
+            Route::get('/', [CustomerLoginController::class, 'CustomerLogin'])->name('CustomerCode');
+            Route::post('/', [CustomerCodeController::class, 'CustomerCodePost'])->name('CustomerCodePost')->middleware('throttle:1,0.05');
+        });
+
+        Route::prefix('Welcome')->group(function () {
+            Route::get('/', [CustomerWelcomeController::class, 'CustomerWelcome'])->name('CustomerWelcome');
+        });
+    });
+
+    Route::prefix('Products')->group(function () {
+        Route::prefix('All')->group(function () {
+            Route::get('/', [EcommerceAllProductsController::class, 'EcommerceAllProducts'])->name('EcommerceAllProducts');
+            Route::get('Search', [EcommerceAllProductsController::class, 'EcommerceAllProducts'])->name('EcommerceAllProductsserachforproduct');
+            Route::post('Search', [EcommerceAllProductsController::class, 'EcommerceAllProductsserachforproductPost'])->name('EcommerceAllProductsserachforproductPost')->middleware('throttle:1,0.05');
+            Route::prefix('Row')->group(function () {
+                Route::get('/', [EcommerceAllProductsController::class, 'EcommerceAllProductsproductineachrow'])->name('EcommerceAllProductsproductineachrow');
+                Route::get('Search', [EcommerceAllProductsController::class, 'EcommerceAllProductsproductineachrow'])->name('EcommerceAllProductsserachforproductrow');
+                Route::post('Search', [EcommerceAllProductsController::class, 'EcommerceAllProductsserachforproductrowPost'])->name('EcommerceAllProductsserachforproductrowPost')->middleware('throttle:1,0.05');
+            });
+        });
+
+        Route::prefix('MostSale')->group(function () {
+            Route::get('/', [EcommerceMostSaleProductsController::class, 'EcommerceMostSaleProducts'])->name('EcommerceMostSaleProducts');
+            Route::get('Row', [EcommerceMostSaleProductsController::class, 'EcommerceMostSaleProductsRow'])->name('EcommerceMostSaleProductsRow');
+        });
+
+        Route::prefix('Offers')->group(function () {
+            Route::get('/', [EcommerceProductsWithOffersController::class, 'EcommerceProductsWithOffers'])->name('EcommerceProductsWithOffers');
+            Route::get('Row', [EcommerceProductsWithOffersController::class, 'EcommerceProductsWithOffersRow'])->name('EcommerceProductsWithOffersRow');
+        });
+    });
+
+    Route::prefix('ProductDetails')->group(function () {
+        Route::get('/{id}', [ProductDetailsController::class, 'ProductDetails'])->name('ProductDetails');
+        Route::Post('/{id}', [ProductDetailsController::class, 'ProductDetailsPost'])->name('ProductDetailsPost')->middleware('throttle:1,0.05');
+
+        Route::prefix('Comment')->group(function () {
+            Route::get('/{id}', [ProductDetailsController::class, 'ProductDetails'])->name('CustomerAddProductComment');
+            Route::Post('/{id}', [ProductDetailsController::class, 'CustomerAddProductCommentPost'])->name('CustomerAddProductCommentPost')->middleware('throttle:1,0.05');
+        });
+    });
+
+    Route::prefix('CategoryProduct')->group(function () {
+        Route::get('/{id}', [CategoryProductController::class, 'CategoryProduct'])->name('CategoryProduct');
+        Route::get('/Row/{id}', [CategoryProductController::class, 'CategoryProductRow'])->name('CategoryProductRow');
+    });
+
+    Route::prefix('SubcategoryProduct')->group(function () {
+        Route::get('/{id}', [SubcategoryProductController::class, 'SubcategoryProduct'])->name('SubcategoryProduct');
+        Route::get('/Row/{id}', [SubcategoryProductController::class, 'SubcategoryProductRow'])->name('SubcategoryProductRow');
+    });
+
+
+    Route::prefix('CompanyProduct')->group(function () {
+        Route::get('/{id}', [CompanyProductController::class, 'CompanyProduct'])->name('CompanyProduct');
+        Route::get('/Row/{id}', [CompanyProductController::class, 'CompanyProductRow'])->name('CompanyProductRow');
+    });
+
+    Route::prefix('Categories')->group(function () {
+        Route::get('/', [EcommerceAllCategoriesController::class, 'EcommerceAllCategories'])->name('EcommerceAllCategories');
+    });
+
+    Route::prefix('KnowAboutUs')->group(function () {
+        Route::get('/', [EcommerceKnowAboutUsController::class, 'EcommerceKnowAboutUs'])->name('EcommerceKnowAboutUs');
+    });
+
+    Route::prefix('ContactUs')->group(function () {
+        Route::get('/', [EcommerceContactUsController::class, 'EcommerceContactUs'])->name('EcommerceContactUs');
+        Route::post('/', [EcommerceContactUsController::class, 'CustomerContactUsMessages'])->name('CustomerContactUsMessages')->middleware('throttle:1,0.05');
+    });
+
+    Route::prefix('Offers')->group(function () {
+        Route::get('/', [EcommerceOffersController::class, 'EcommerceOffers'])->name('EcommerceOffers');
+    });
+    // في routes/web.php — القسم الخاص بالـ Ecommerce
+
+    // ── Cart ──
+    Route::get('/cart', [ShoppingCartController::class, 'ShoppingCart'])->name('ShoppingCart');
+    Route::post('/cart/add/{id}', [ShoppingCartController::class, 'CustomerRequestIncreseQuantityPost'])
+        ->name('cart.add')
+        ->middleware('throttle:30,1'); // ← 30 request per minute
+
+    Route::prefix('ShoppingCart')->group(function () {
+        Route::prefix('Increase')->group(function () {
+            Route::get('/{id}', [ShoppingCartController::class, 'ShoppingCart'])->name('CustomerRequestIncreseQuantity');
+            Route::post('/{id}', [ShoppingCartController::class, 'CustomerRequestIncreseQuantityPost'])
+                ->name('CustomerRequestIncreseQuantityPost')
+                ->middleware('throttle:30,1');
+        });
+        Route::prefix('Decrease')->group(function () {
+            Route::get('/{id}', [ShoppingCartController::class, 'ShoppingCart'])->name('CustomerRequestDecreaseQuantity');
+            Route::post('/{id}', [ShoppingCartController::class, 'CustomerRequestDecreaseQuantityPost'])
+                ->name('CustomerRequestDecreaseQuantityPost')
+                ->middleware('throttle:30,1');
+        });
+        Route::prefix('Delete')->group(function () {
+            Route::get('/{id}', [ShoppingCartController::class, 'ShoppingCart'])->name('CustomerRequestDelete');
+            Route::post('/{id}', [ShoppingCartController::class, 'CustomerRequestDeletePost'])
+                ->name('CustomerRequestDeletePost')
+                ->middleware('throttle:30,1');
+        });
+    });
+
+    // cart.update و cart.remove — للـ AJAX من صفحة السلة
+    Route::patch('/cart/update/{id}', [ShoppingCartController::class, 'CustomerRequestDecreaseQuantityPost'])
+        ->name('cart.update');
+    Route::delete('/cart/remove/{id}', [ShoppingCartController::class, 'CustomerRequestDeletePost'])
+        ->name('cart.remove');
+
+    // ── Checkout ──
+    Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
+    Route::post('/checkout/confirm', [CheckoutController::class, 'confirm'])
+        ->name('checkout.confirm')
+        ->middleware('throttle:5,1');
+
+    // ── Wishlist ──
+    Route::get('/wishlist', [WishlistController::class, 'index'])->name('Wishlist');
+    Route::post('/wishlist/toggle/{id}', [WishlistController::class, 'toggle'])
+        ->name('wishlist.toggle');
+
+    Route::prefix('PersonalPage')->group(function () {
+
+        Route::prefix('Info')->group(function () {
+            Route::get('/', [UserPersonalPageController::class, 'UserPersonalPage'])->name('UserPersonalPage');
+
+            // https://plusdigitalpd.com/PersonalPage/Info/2
+            Route::get('/{id}', [UserPersonalPageController::class, 'UserPersonalPage'])->name('UserPersonalPageID');
+            Route::post('/{id}', [UserPersonalPageController::class, 'UserPersonalPageIDPost'])->name('UserPersonalPageIDPost');
+        });
+
+        Route::prefix('ShipmentProducts')->group(function () {
+            Route::get('/', [UserPersonalPageController::class, 'UserPersonalUnderRequstProducts'])->name('UserPersonalUnderRequstProducts');
+        });
+
+        Route::prefix('Statement')->group(function () {
+            Route::get('/', [UserPersonalPageController::class, 'UserPersonalStatement'])->name('UserPersonalStatement');
+        });
+
+        Route::prefix('LogOut')->group(function () {
+            Route::get('/', [UserPersonalPageController::class, 'UserPersonalLogOut'])->name('UserPersonalLogOut');
+        });
+    });
+
+    Route::prefix('Maintenance')->group(function () {
+        Route::get('/', [UserMaintenanceController::class, 'UserMaintenance'])->name('UserMaintenance');
+    });
+
+    Route::prefix('PrivacyPolicy')->group(function () {
+        Route::get('/', [PrivacyPolicyController::class, 'PrivacyPolicy'])->name('PrivacyPolicy');
+    });
+
+    Route::prefix('TermsAndConditions')->group(function () {
+        Route::get('/', [PrivacyPolicyController::class, 'TermsAndConditions'])->name('TermsAndConditions');
+    });
+});
+
+
+// // ── الرئيسية ──
+// Route::get('/', [ShopController::class, 'home'])->name('home');
+
+// ── المنتجات ──
+// Route::get('/products',          [ShopController::class, 'EcommerceAllProducts'])->name('products');
+// Route::get('/products/{slug}',   [ShopController::class, 'ProductDetails'])->name('product.show');
+
+// ── التصنيفات ──
+// Route::get('/categories',        [ShopController::class, 'categories'])->name('categories');
+// Route::get('/category/{id}',     [ShopController::class, 'CategoryProduct'])->name('category.show');
+// Route::get('/subcategory/{id}',  [ShopController::class, 'subcategory'])->name('subcategory.show');
+
+// ── الصيانة ──
+// Route::get('/maintenance',       [ShopController::class, 'maintenance'])->name('maintenance');
+// Route::get('/maintenance/offers', [ShopController::class, 'maintenanceOffers'])->name('maintenance.offers');
+
+// ── العروض ──
+// Route::get('/offers',            [ShopController::class, 'offers'])->name('offers');
+
+// ── الكارت والـ Checkout ──
+// Route::get('/cart',              [ShopController::class, 'cart'])->name('cart');
+// Route::get('/checkout',          [ShopController::class, 'checkout'])->name('checkout');
+
+// ── الحساب ──
+// Route::get('/account',           [ShopController::class, 'UserPersonalPage'])->name('account');
+// Route::get('/account/orders',    [ShopController::class, 'orders'])->name('account.orders');
+// Route::get('/account/orders/{id}', [ShopController::class, 'orderDetail'])->name('account.orders.show');
+
+// // ── صفحات ثابتة ──
+// Route::get('/about',             [EcommerceKnowAboutUsController::class, 'EcommerceKnowAboutUs'])->name('about');
+// Route::get('/contact',           [EcommerceContactUsController::class, 'EcommerceContactUs'])->name('contact');
+
+
+
+<?php
+
+namespace App\Http\Controllers\Ecommerce\ShoppingCart;
+
+use App\Http\Controllers\Controller;
+use App\Models\EcommerceProduct;
+use App\Services\EcommerceSharedDataService;
+use Illuminate\Http\Request;
+
+class ShoppingCartController extends Controller
+{
+    // ══════════════════════════════════════════════
+    // عرض صفحة السلة
+    // السلة محفوظة في الـ session — تشتغل بدون تسجيل دخول
+    // ══════════════════════════════════════════════
+    public function ShoppingCart()
+    {
+        $ecommerceSharedData = EcommerceSharedDataService::get();
+        $ecommerceSharedData['pageTitle'] = 'سلة المشتريات';
+
+        // المنتجات المشاهدة مؤخراً
+        $recentlyViewed = collect();
+        $recentIds = session('recently_viewed', []);
+        if (!empty($recentIds)) {
+            $recentlyViewed = EcommerceProduct::whereIn('ecommerceproduct_id', $recentIds)
+                ->with('product')
+                ->where('ecommerceproduct_displaystatus', 1)
+                ->take(4)
+                ->get();
+        }
+
+        return view(
+            'ecommerce.ShoppingCart.ShoppingCart',
+            compact('ecommerceSharedData', 'recentlyViewed')
+        );
+    }
+
+    // ══════════════════════════════════════════════
+    // إضافة منتج للسلة
+    // يشتغل بدون تسجيل دخول — Session only
+    // ══════════════════════════════════════════════
+   // ══════════════════════════════════════════════
+    // إضافة للسلة — استقبال الـ quantity
+    // ══════════════════════════════════════════════
+    public function CustomerRequestIncreseQuantityPost(Request $request, $id)
+    {
+        $ep = EcommerceProduct::with('product')
+            ->where('ecommerceproduct_id', $id)
+            ->where('ecommerceproduct_displaystatus', 1)
+            ->firstOrFail();
+
+        $cart = session('cart', []);
+
+        // قراءة الكمية من الـ request (من صفحة تفاصيل المنتج)
+        $requestedQty = max(1, min((int) ($request->quantity ?? 1), 10));
+
+        if (isset($cart[$id])) {
+            // لو موجود — نزود الكمية
+            $cart[$id]['quantity'] = min($cart[$id]['quantity'] + $requestedQty, 10);
+        } else {
+            $cart[$id] = [
+                'id'          => $id,
+                'name'        => $ep->product?->product_name    ?? '',
+                'price'       => (float) ($ep->product?->product_sellprice  ?? 0),
+                'offer_price' => (float) ($ep->product?->product_offerprice ?? 0),
+                'image'       => $ep->product?->product_image   ?? '',
+                'quantity'    => $requestedQty,
+            ];
+        }
+
+        session(['cart' => $cart]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success'    => true,
+                'cart_count' => count($cart),
+                'message'    => 'تمت الإضافة إلى السلة',
+            ]);
+        }
+
+        return back()->with('success', 'تمت إضافة المنتج إلى السلة');
+    }
+
+    // ══════════════════════════════════════════════
+    // تعديل الكمية — AJAX response محدث
+    // ══════════════════════════════════════════════
+    public function CustomerRequestDecreaseQuantityPost(Request $request, $id)
+    {
+        $cart   = session('cart', []);
+        $action = $request->action ?? 'increase';
+
+        if (!isset($cart[$id])) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false], 404);
+            }
+            return back();
+        }
+
+        $removed = false;
+
+        if ($action === 'increase') {
+            $cart[$id]['quantity'] = min($cart[$id]['quantity'] + 1, 10);
+
+        } elseif ($action === 'decrease') {
+            if ($cart[$id]['quantity'] <= 1) {
+                // الكمية وصلت لـ 1 — احذف المنتج
+                unset($cart[$id]);
+                $removed = true;
+            } else {
+                $cart[$id]['quantity']--;
+            }
+        }
+
+        session(['cart' => $cart]);
+
+        if ($request->expectsJson()) {
+            // حساب إجمالي السلة كلها
+            $cartTotal = collect($cart)->sum(function ($item) {
+                $price = ($item['offer_price'] ?? 0) > 0 && $item['offer_price'] < $item['price']
+                    ? $item['offer_price']
+                    : $item['price'];
+                return $price * ($item['quantity'] ?? 1);
+            });
+
+            // حساب إجمالي المنتج الواحد
+            $itemTotal = 0;
+            if (!$removed && isset($cart[$id])) {
+                $item      = $cart[$id];
+                $itemPrice = ($item['offer_price'] ?? 0) > 0 && $item['offer_price'] < $item['price']
+                    ? $item['offer_price']
+                    : $item['price'];
+                $itemTotal = $itemPrice * $item['quantity'];
+            }
+
+            return response()->json([
+                'success'      => true,
+                'removed'      => $removed,                          // الـ JS بيحذف الـ cart-item لو true
+                'new_quantity' => $removed ? 0 : $cart[$id]['quantity'],
+                'item_total'   => number_format($itemTotal),
+                'cart_total'   => number_format($cartTotal),
+                'cart_count'   => count($cart),
+            ]);
+        }
+
+        return back();
+    }
+
+    // ══════════════════════════════════════════════
+    // حذف المنتج — مش محتاج تعديل
+    // بيشتغل بـ form submit عادي من الـ modal
+    // ══════════════════════════════════════════════
+    public function CustomerRequestDeletePost(Request $request, $id)
+    {
+        $cart = session('cart', []);
+        unset($cart[$id]);
+        session(['cart' => $cart]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success'    => true,
+                'cart_count' => count($cart),
+            ]);
+        }
+
+        return back()->with('success', 'تم حذف المنتج من السلة');
+    }
+}
+
+{{-- resources/views/ecommerce/Customer/CustomerLogin/CustomerLogin.blade.php --}}
+@extends('layouts.app')
+@section('title', 'تسجيل الدخول — ' . ($ecommerceSharedData['branchName'] ?? ''))
+
+@section('content')
+<div class="auth-page">
+    <div class="auth-card">
+
+        {{-- Logo --}}
+        <div class="auth-card__logo">
+            <img src="{{ asset('images/brancheslogo/' . ($ecommerceSharedData['branchImage'] ?? '')) }}"
+                 alt="{{ $ecommerceSharedData['branchName'] ?? '' }}"
+                 height="48" loading="eager">
+        </div>
+
+        <h1 class="auth-card__title">أهلا بك!</h1>
+        <p class="auth-card__desc">أستخدم رقم موبايلك لتسجيل الدخول أو إنشاء حساب.</p>
+
+        {{-- Errors --}}
+        @if($errors->any())
+        <div class="auth-card__errors" role="alert">
+            @foreach($errors->all() as $error)
+            <p>{{ $error }}</p>
+            @endforeach
+        </div>
+        @endif
+
+        {{-- Form --}}
+        <form method="POST"
+              action="{{ route('CustomerLoginPost') }}"
+              id="loginForm"
+              novalidate>
+            @csrf
+            @method('post')
+            <input type="hidden" name="fingerprint" id="fingerprint">
+            <input type="hidden" name="client_token" id="client_token">
+
+            <div class="auth-card__field">
+                <label for="customer_phone" class="auth-card__label">رقم الموبايل</label>
+                <input type="tel"
+                       id="customer_phone"
+                       name="customer_phone"
+                       class="auth-card__input @error('customer_phone') is-invalid @enderror"
+                       placeholder="{{ $ecommerceSharedData['phone'] ?? '01xxxxxxxxx' }}"
+                       pattern="01[0-9]{9}"
+                       maxlength="11"
+                       required
+                       autocomplete="tel"
+                       inputmode="numeric"
+                       aria-describedby="phoneHelp">
+                @error('customer_phone')
+                <span class="auth-card__error-msg" role="alert">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <button type="submit" class="btn hero__btn auth-card__submit">
+                الدخول بكود رسالة قصيرة
+            </button>
+        </form>
+
+        <p class="auth-card__footer">
+            مستخدم جديد؟
+            <a href="{{ route('CustomerLogin') }}" class="auth-card__link">إنشاء حساب</a>
+        </p>
+
+        <p class="auth-card__terms">
+            بالمتابعة، فأنت موافق على
+            <a href="{{ route('TermsAndConditions') }}" class="auth-card__link">الشروط والأحكام</a>
+        </p>
+
+    </div>
+</div>
+@endsection
+
+@props([
+    'staticLinks' => [],
+    'navData' => [],
+    'branchName' => '',
+    'branchImage' => '',
+    'phone' => '',
+    'logo' => '',
+    'ecommerceSharedData' => [],
+])
+@php
+    $logo = $ecommerceSharedData['logo'] ?? $logo;
+
+@endphp
+
+{{-- ══════════════════════════════════════════
+     TOP BAR
+══════════════════════════════════════════ --}}
+<div class="top-bar py-1 bg-var-primary text-white d-none d-md-block" aria-label="الشريط العلوي">
+    <div class="container container-fluid px-4">
+        <div class="d-flex justify-content-between align-items-center top-bar__wrapper">
+            {{-- اسم الفرع --}}
+            <span class="top-bar__branch d-flex align-items-center gap-2">
+                English
+            </span>
+            {{-- رقم التليفون --}}
+            <a href="tel:{{ $ecommerceSharedData['phone'] }}"
+                class="top-bar__phone text-white text-decoration-none d-flex align-items-center gap-2 flex-row-reverse"
+                aria-label="اتصل بنا على {{ $ecommerceSharedData['phone'] }}">
+                <i class="bi bi-telephone-fill" aria-hidden="true"></i>
+                <span>{{ $ecommerceSharedData['phone'] }}</span>
+            </a>
+
+
+        </div>
+    </div>
+</div>
+
+{{-- ══════════════════════════════════════════
+     MAIN NAVBAR
+══════════════════════════════════════════ --}}
+<nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top w-100" role="navigation"
+    aria-label="القائمة الرئيسية">
+
+    <div class="container container-fluid px-4">
+
+
+        {{-- ── زرار الـ Hamburger للموبايل ── --}}
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+            aria-controls="mainNav" aria-expanded="false" aria-label="فتح القائمة">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        {{-- ── الجزء الأول: اللوجو ── --}}
+        <a class="navbar-brand" href="{{ route('home') }}" aria-label="الصفحة الرئيسية">
+            <img src="{{ asset($ecommerceSharedData['logo']) }}" alt="شعار المتجر" width="120" height="40"
+                loading="eager">
+        </a>
+        {{-- Search --}}
+        <div class="d-flex justify-content-between align-items-center gap-3 d-lg-none">
+            <button type="button" class="btn btn-link p-0 text-dark" id="navSearchBtn" aria-label="بحث"
+                aria-haspopup="dialog" aria-expanded="false">
+                <i class="bi bi-search fs-5" aria-hidden="true"></i>
+            </button>
+            <a href="{{ route('ShoppingCart') }}" class="btn btn-link p-0 text-dark position-relative"
+                aria-label="سلة التسوق">
+                <i class="bi bi-bag fs-5" aria-hidden="true"></i>
+                {{-- Badge عدد المنتجات --}}
+                <span
+                    class="cart-badge position-absolute top-0 start-100 translate-middle
+                            badge rounded-pill bg-var-heading"
+                    aria-label="عدد المنتجات في السلة">
+                    {{ session('cart_count', 0) }}
+                </span>
+            </a>
+        </div>
+
+
+        {{-- ── الجزء التاني: اللينكات (flex-1) ── --}}
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav mx-auto gap-1">
+
+                @foreach ($staticLinks as $link)
+                    @php
+                        $children = $navData[$link['db_key']] ?? [];
+                        $hasChildren = !empty($link['has_db']) && !empty($link['db_key']) && count($children) > 0;
+                        $isProducts = $link['db_key'] === 'products';
+                    @endphp
+
+                    <li class="nav-item {{ $hasChildren ? 'dropdown' : '' }}">
+
+                        @if ($hasChildren)
+                            <a class="nav-link dropdown-toggle fw-medium" href="#" data-bs-toggle="dropdown"
+                                data-bs-auto-close="outside" aria-expanded="false">
+                                {{ $link['name'] }}
+                            </a>
+
+                            <ul class="dropdown-menu border-0 shadow-sm">
+                                <li>
+                                    <a class="dropdown-item fw-semibold text-primary border-bottom pb-2 mb-1"
+                                        href="{{ route($link['route']) }}">
+                                        <i class="bi bi-arrow-right ms-1"></i>
+                                        عرض الكل
+                                    </a>
+                                </li>
+
+                                @if ($isProducts)
+                                    {{--
+                                        dropdown المنتجات — بيعرض المنتجات مباشرة
+                                        كل منتج ليه لينك على ProductDetails
+                                    --}}
+                                    @foreach ($children as $product)
+                                        <li>
+                                            <a class="dropdown-item"
+                                                href="{{ route('ProductDetails', $product['slug']) }}">
+                                                {{ $product['name'] }}
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                @else
+                                    {{--
+                                        dropdown التصنيفات — بيعرض categories
+                                        لو category عندها subcategories → dropend
+                                        لو لأ → link مباشر
+                                    --}}
+                                    @foreach ($children as $cat)
+                                        @if (count($cat['children']) > 0)
+                                            <li class="dropend">
+                                                <a class="dropdown-item dropdown-toggle"
+                                                    href="{{ route('CategoryProduct', $cat['slug']) }}"
+                                                    data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                                                    aria-expanded="false">
+                                                    {{ $cat['name'] }}
+                                                </a>
+                                                <ul class="dropdown-menu border-0 shadow-sm">
+                                                    @foreach ($cat['children'] as $sub)
+                                                        <li>
+                                                            <a class="dropdown-item"
+                                                                href="{{ route('SubcategoryProduct', $sub['slug']) }}">
+                                                                {{ $sub['name'] }}
+                                                            </a>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            </li>
+                                        @else
+                                            <li>
+                                                <a class="dropdown-item"
+                                                    href="{{ route('CategoryProduct', $cat['slug']) }}">
+                                                    {{ $cat['name'] }}
+                                                </a>
+                                            </li>
+                                        @endif
+                                    @endforeach
+                                @endif
+
+                            </ul>
+                        @else
+                            <a class="nav-link fw-medium" href="{{ route($link['route']) }}"
+                                @if (request()->routeIs($link['route'])) aria-current="page" @endif>
+                                {{ $link['name'] }}
+                            </a>
+                        @endif
+
+                    </li>
+                @endforeach
+
+            </ul>
+
+            {{-- ── الجزء التالت: الأيقونات ── --}}
+            <div class="navbar-icons d-flex align-items-center gap-3 ms-lg-3 mt-3 mt-lg-0">
+                {{-- Search --}}
+                <button type="button" class="d-none d-md-flex btn btn-link p-0 text-dark" id="navSearchBtnDesk"
+                    aria-label="بحث" aria-haspopup="dialog" aria-expanded="false">
+                    <i class="bi bi-search fs-5" aria-hidden="true"></i>
+                </button>
+
+
+                {{-- User --}}
+                @if (session('customer_name') === null)
+                    <a href="{{ route('CustomerLogin') }}" class="btn btn-link p-0 text-dark" aria-label="حسابي">
+                        <i class="bi bi-person fs-5" aria-hidden="true"></i>
+                    </a>
+                @else
+                    <a href="{{ route('UserPersonalPage') }}" class="btn btn-link p-0 text-dark" aria-label="حسابي">
+                        <i class="bi bi-person-check-fill" aria-hidden="true"></i>
+                    </a>
+                @endif
+
+                {{-- Heart - i like this --}}
+
+                {{-- في components/navbar.blade.php --}}
+
+                {{-- السلة --}}
+                <a href="{{ route('ShoppingCart') }}"
+                class="btn-link position-relative"
+                aria-label="سلة التسوق">
+                    <i class="bi bi-bag fs-5" aria-hidden="true"></i>
+                    @php $cartCount = count(session('cart', [])); @endphp
+                    <span class="cart-badge {{ $cartCount === 0 ? 'd-none' : '' }}"
+                        data-cart-count
+                        aria-live="polite"
+                        aria-label="{{ $cartCount }} منتج في السلة">
+                        {{ $cartCount }}
+                    </span>
+                </a>
+
+                {{-- المفضلة --}}
+                <a href="{{ route('Wishlist') }}"
+                class="btn-link position-relative"
+                aria-label="قائمة الرغبات">
+                    <i class="bi bi-heart fs-5" aria-hidden="true"></i>
+                    @php $wishlistCount = count(session('wishlist', [])); @endphp
+                    <span class="cart-badge {{ $wishlistCount === 0 ? 'd-none' : '' }}"
+                        data-wishlist-count
+                        aria-live="polite"
+                        aria-label="{{ $wishlistCount }} في المفضلة">
+                        {{ $wishlistCount }}
+                    </span>
+                </a>
+
+            </div>
+        </div>
+    </div>
+</nav>
+
+
+@props([
+    'id'         => 0,
+    'name'       => '',
+    'price'      => 0,
+    'offerPrice' => null,
+    'image'      => '',
+    'route'      => 'ProductDetails',
+    'hasOffer'   => false,
+])
+
+@php
+    $showOffer    = $hasOffer
+                 && $offerPrice !== null
+                 && (float)$offerPrice > 0
+                 && (float)$offerPrice < (float)$price;
+    $discount     = $showOffer
+                 ? round((((float)$price - (float)$offerPrice) / (float)$price) * 100)
+                 : 0;
+    $displayPrice = $showOffer ? $offerPrice : $price;
+
+    // تحقق هل المنتج في المفضلة
+    $inWishlist = in_array($id, session('wishlist', []));
+@endphp
+
+<article class="product-card">
+
+    @if($showOffer && $discount > 0)
+    <span class="product-card__badge" aria-label="خصم {{ $discount }}%">
+        {{ $discount }}%
+    </span>
+    @endif
+
+    <a href="{{ route($route, $id) }}"
+       class="product-card__img-wrap"
+       aria-label="عرض {{ $name }}">
+        @if($image)
+        <img src="{{ asset('images/productsimages/' . $image) }}"
+             alt="{{ $name }}"
+             class="product-card__img"
+             width="148" height="120"
+             loading="lazy"
+             decoding="async">
+        @else
+        <div class="product-card__no-img" aria-hidden="true">
+            <i class="bi bi-image"></i>
+        </div>
+        @endif
+    </a>
+
+    <div class="product-card__body">
+        <h3 class="product-card__name">
+            <a href="{{ route($route, $id) }}">{{ $name }}</a>
+        </h3>
+
+        <div class="product-card__prices">
+            <span class="product-card__price {{ $showOffer ? 'product-card__price--offer' : '' }}">
+                {{ number_format($displayPrice) }} ج.م
+            </span>
+            @if($showOffer)
+            <span class="product-card__old-price">
+                {{ number_format($price) }}
+            </span>
+            @endif
+        </div>
+
+        <div class="product-card__actions">
+            {{--
+                js-add-to-cart: AJAX إضافة للسلة
+                btn-text: span منفصل عشان نغيره بـ DOM API (مش innerHTML)
+            --}}
+            <button type="button"
+                    class="btn product-card__add-btn js-add-to-cart"
+                    data-id="{{ $id }}"
+                    aria-label="أضف {{ $name }} إلى السلة">
+                <i class="bi bi-bag" aria-hidden="true"></i>
+                <span class="btn-text">أضف إلى السلة</span>
+            </button>
+
+            {{--
+                js-wishlist-toggle: AJAX toggle المفضلة
+                is-wishlisted: class بتضاف لو في المفضلة
+            --}}
+            <button type="button"
+                    class="btn product-card__wish-btn js-wishlist-toggle {{ $inWishlist ? 'is-wishlisted' : '' }}"
+                    data-id="{{ $id }}"
+                    aria-label="{{ $inWishlist ? 'إزالة من المفضلة' : 'أضف للمفضلة' }}"
+                    aria-pressed="{{ $inWishlist ? 'true' : 'false' }}">
+                <i class="bi bi-heart{{ $inWishlist ? '-fill' : '' }}" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+
+</article>
+
+@php
+    $Page_title = $ecommerceSharedData['pageTitle'] ?? '- سلة التسوق ';
+    $description =
+        'تسوق الآن من فرع ' . $ecommerceSharedData['branchName'] ?? ' واحصل على أفضل العروض والمنتجات المختارة بعناية.';
+    '، عروض حصرية على المنتجات والخدمات لفترة محدودة.';
+    $keywords = 'عروض, خصومات, ' . $ecommerceSharedData['branch']->branch_name . ', منتجات, خدمات, توفير, أسعار خاصة';
+    $og_title = 'عروض فرع ' . $ecommerceSharedData['branch']->branch_name;
+    $og_description =
+        'استمتع بتجربة تسوق مميزة من فرع ' . $ecommerceSharedData['branch']->branch_name . ' – لا تفوت الفرصة!';
+    $og_image = url('/images/brancheslogo/' . $ecommerceSharedData['branch']->branch_image);
+    $og_type = 'website';
+@endphp
+
+@php
+    /*
+     | السلة محفوظة في الـ session عشان تشتغل حتى بدون تسجيل دخول
+     | الـ session key: 'cart' → array من products
+     |
+     | لما يسجل دخول ويكمل الطلب هيتحول لـ CustomerRequestProduct
+    */
+    $cartItems = session('cart', []);
+    $cartCount = count($cartItems);
+
+    /*
+     | حساب الإجمالي
+     | كل item فيه: id, name, price, offer_price, quantity, image
+    */
+    $cartTotal = collect($cartItems)->sum(function ($item) {
+        $price =
+            ($item['offer_price'] ?? 0) > 0 && $item['offer_price'] < $item['price']
+                ? $item['offer_price']
+                : $item['price'];
+        return $price * ($item['quantity'] ?? 1);
+    });
+
+    /*
+     | المنتجات المشاهدة مؤخراً — من الـ session
+     | ← لما يزور المستخدم ProductDetails بتتحفظ في session('recently_viewed')
+    */
+    $recentlyViewed = [];
+    if (session('recently_viewed')) {
+        $recentIds = session('recently_viewed', []);
+        $recentlyViewed = \App\Models\EcommerceProduct::whereIn('ecommerceproduct_id', $recentIds)
+            ->with('product')
+            ->where('ecommerceproduct_displaystatus', 1)
+            ->take(4)
+            ->get();
+    }
+@endphp
+
+@extends('layouts.app')
+
+
+@section('title', $Page_title)
+@section('description', $description)
+@section('content')
+
+    <x-page-header title="سلة التسوق" />
+
+    <div class="container py-2">
+
+        @if ($cartCount === 0)
+            {{-- ══ السلة فارغة ══ --}}
+            <div class="cart-empty">
+                <div class="cart-empty__icon" aria-hidden="true">
+                    <i class="bi bi-basket"></i>
+                </div>
+                <h2 class="cart-empty__title">سلة التسوق الخاصة بك فارغة!</h2>
+                <p class="cart-empty__desc">
+                    {{ $ecommerceSharedData['branchName'] ?? 'المتجر' }}  مكانك الأول لكل احتياجات الإلكترونية.
+                    تسوق الأن مع أكبر تشكيلة منتجات </p>
+                <a href="{{ route('EcommerceAllProducts') }}" class="btn hero__btn">
+                    تسوق الآن
+                </a>
+            </div>
+        @else
+            {{-- ══ السلة فيها منتجات ══ --}}
+            <div class="row g-4">
+
+                {{-- ── قائمة المنتجات ── --}}
+                <div class="col-lg-8">
+                    <div class="cart-items">
+                        @foreach ($cartItems as $key => $item)
+                            <div class="cart-item" data-key="{{ $key }}">
+
+                                {{-- صورة المنتج --}}
+                                <a href="{{ route('ProductDetails', $item['id']) }}" class="cart-item__img-wrap">
+                                    <img src="{{ asset('images/productsimages/' . ($item['image'] ?? 'placeholder.png')) }}"
+                                        alt="{{ $item['name'] ?? '' }}" width="80" height="80" loading="lazy">
+                                </a>
+
+                                {{-- المعلومات --}}
+                                <div class="cart-item__info">
+                                    <a href="{{ route('ProductDetails', $item['id']) }}" class="cart-item__name">
+                                        {{ $item['name'] ?? '' }}
+                                    </a>
+
+                                    @php
+                                        $itemPrice =
+                                            ($item['offer_price'] ?? 0) > 0 && $item['offer_price'] < $item['price']
+                                                ? $item['offer_price']
+                                                : $item['price'];
+                                    @endphp
+
+                                    <div class="cart-item__prices">
+                                        <span class="cart-item__price">
+                                            {{ number_format($itemPrice) }} جنية
+                                        </span>
+                                        @if (($item['offer_price'] ?? 0) > 0 && $item['offer_price'] < $item['price'])
+                                            <span class="cart-item__old-price">
+                                                {{ number_format($item['price']) }}
+                                            </span>
+                                            <span class="cart-item__discount-label">خصم</span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                {{-- Qty + Actions --}}
+                                {{-- Qty + Actions --}}
+                                <div class="cart-item__actions">
+
+                                    {{-- ── Qty AJAX ── --}}
+                                    <div class="cart-qty">
+                                        {{--
+                                            data-action: 'decrease' | 'increase'
+                                            data-key: مفتاح المنتج في الـ session
+                                            class js-qty-btn: الـ JS بيستمع عليها
+                                        --}}
+                                        <button type="button"
+                                                class="cart-qty__btn js-qty-btn"
+                                                data-action="decrease"
+                                                data-key="{{ $key }}"
+                                                aria-label="تقليل الكمية">
+                                            <i class="bi bi-dash" aria-hidden="true"></i>
+                                        </button>
+
+                                        <span class="cart-qty__val">{{ $item['quantity'] ?? 1 }}</span>
+
+                                        <button type="button"
+                                                class="cart-qty__btn js-qty-btn"
+                                                data-action="increase"
+                                                data-key="{{ $key }}"
+                                                aria-label="زيادة الكمية">
+                                            <i class="bi bi-plus" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+
+    <div class="cart-item__meta">
+
+        {{--
+            DELETE:
+            ───────
+            الـ form بياخد id فريد
+            الـ button بياخد data-form-id يساوي نفس الـ id
+            الـ JS بيجيب الـ form بـ getElementById
+            ده الحل الصح لأن الـ button مش جوه الـ form في الـ DOM
+        --}}
+        @php $deleteFormId = 'delete-form-' . $key; @endphp
+
+        <form method="POST"
+              action="{{ route('cart.remove', $key) }}"
+              id="{{ $deleteFormId }}"
+              class="d-none">
+            @csrf
+            @method('DELETE')
+        </form>
+
+        <button type="button"
+                class="cart-item__action-btn js-delete-confirm"
+                data-form-id="{{ $deleteFormId }}"
+                data-name="{{ e($item['name'] ?? '') }}"
+                aria-label="حذف {{ $item['name'] ?? 'المنتج' }}">
+            <i class="bi bi-trash" aria-hidden="true"></i>
+            <span class="btn-text">حذف المنتج</span>
+        </button>
+
+        {{-- Save for Later --}}
+        @php $inWishlist = in_array($key, session('wishlist', [])); @endphp
+        <button type="button"
+                class="cart-item__action-btn js-save-later {{ $inWishlist ? 'is-wishlisted' : '' }}"
+                data-id="{{ $key }}"
+                aria-label="{{ $inWishlist ? 'في المفضلة' : 'حفظ للمفضلة' }}"
+                aria-pressed="{{ $inWishlist ? 'true' : 'false' }}">
+            <i class="bi bi-heart{{ $inWishlist ? '-fill' : '' }}" aria-hidden="true"></i>
+            <span class="btn-text">{{ $inWishlist ? 'في المفضلة' : 'حفظ لاحقاً' }}</span>
+        </button>
+
+    </div>
+
+    {{-- الإجمالي — data-item-total لتحديثه بـ AJAX --}}
+    <div class="cart-item__total">
+        {{ number_format($itemPrice * ($item['quantity'] ?? 1)) }} جنية
+    </div>
+
+</div>
+
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- ── ملخص الطلب ── --}}
+                <div class="col-lg-4">
+                    <div class="cart-summary">
+                        <h3 class="cart-summary__title">ملخص الطلب</h3>
+
+                        <div class="cart-summary__row">
+                            <span>عدد المنتجات</span>
+                            <span>{{ $cartCount }}</span>
+                        </div>
+
+                        <div class="cart-summary__row">
+                            <span>حالة</span>
+                            <span class="text-success fw-semibold">جاهز</span>
+                        </div>
+
+                        <div class="cart-summary__row cart-summary__row--total">
+                            <span>إجمالي الطلب</span>
+                            {{-- data-cart-total: الـ JS بيحدثه بعد كل تغيير في الكمية --}}
+                            <span data-cart-total>{{ number_format($cartTotal) }} جنية</span>
+                        </div>
+
+                        <div class="cart-summary__note">
+                            <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+                            يتوقف على الشروط والأحكام
+                        </div>
+
+                        @if (session('customer_phone'))
+                            <a href="{{ route('checkout') }}" class="btn hero__btn w-100 mt-3">
+                                متابعة الشراء
+                            </a>
+                        @else
+                            {{--
+                    لو المستخدم مش مسجل دخول — بنوديه لـ checkout
+                    والـ checkout بيطلب منه يسجل دخول
+                --}}
+                            <a href="{{ route('checkout') }}" class="btn hero__btn w-100 mt-3">
+                                متابعة الشراء
+                            </a>
+                        @endif
+
+                    </div>
+                </div>
+
+            </div>
+        @endif
+
+        {{-- ══ منتجات شاهدتها مؤخراً ══ --}}
+        @if (count($recentlyViewed ?? []) > 0)
+            <div class="mt-5">
+                <h2 class="section-title mb-4">منتجات شاهدتها مؤخراً</h2>
+                <div class="products-grid">
+                    @foreach ($recentlyViewed as $ep)
+                        <x-product-card :id="$ep->ecommerceproduct_id" :name="$ep->product?->product_name ?? ''" :price="$ep->product?->product_sellprice ?? 0" :offer-price="$ep->product?->product_offerprice"
+                            :image="$ep->product?->product_image ?? ''" route="ProductDetails" :has-offer="($ep->product?->product_offerprice ?? 0) > 0 &&
+                                $ep->product?->product_offerprice < $ep->product?->product_sellprice" />
+                    @endforeach
+                </div>
+
+                {{-- Navigation arrows --}}
+                <div class="d-flex justify-content-center gap-3 mt-3">
+                    <button class="cart-nav-btn" aria-label="السابق">
+                        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                    </button>
+                    <button class="cart-nav-btn" aria-label="التالي">
+                        <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+        @endif
+
+    </div>
+
+
+    {{-- resources/views/ecommerce/ShoppingCart/ShoppingCart.blade.php --}}
+
+    {{-- أضف الـ Modal قبل @endsection --}}
+
+    {{-- ══ Delete Confirmation Modal — مرة واحدة بس ══ --}}
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1"
+         aria-labelledby="deleteConfirmTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width:380px">
+            <div class="modal-content text-center p-4">
+
+                <h5 class="fw-bold mb-2" id="deleteConfirmTitle">
+                    هتحذف المنتج من مشترياتك؟
+                </h5>
+                <p class="text-muted mb-4" style="font-size:.88rem">
+                    <span id="deleteProductName"></span>
+                </p>
+
+                <div class="d-flex gap-3 justify-content-center">
+                    <button type="button"
+                            id="confirmDeleteBtn"
+                            class="btn hero__btn px-4">
+                        احذف
+                    </button>
+                    <button type="button"
+                            class="btn btn-outline-secondary px-4"
+                            data-bs-dismiss="modal">
+                        لا تحذف
+                    </button>
+                </div>
+
+                <div class="mt-3">
+                    <button type="button"
+                            id="modalSaveToWishlist"
+                            class="btn btn-link text-muted"
+                            style="font-size:.82rem">
+                        <i class="bi bi-heart me-1" aria-hidden="true"></i>
+                        <span class="btn-text">اضافة للمفضلة</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+@endsection
+import 'bootstrap/dist/js/bootstrap.bundle.min.js'
+// resources/js/app.js
+import 'bootstrap';
+// أو
+import * as bootstrap from 'bootstrap';
+window.bootstrap = bootstrap;  // ← المهم — بيخليه متاح globally
+
+
+<!--  -->
+<?php
+
+namespace App\Exceptions;
+
+use Exception;
+use Throwable;
+use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use App\Services\EcommerceSharedDataService;
+use Illuminate\Support\Facades\View;
+class Handler extends ExceptionHandler
+{
+    /**
+     * The list of the inputs that are never flashed to the session on validation exceptions.
+     *
+     * @var array<int, string>
+     */
+    protected $dontFlash = [
+        'current_password',
+        'password',
+        'password_confirmation',
+    ];
+
+    /**
+     * Register the exception handling callbacks for the application.
+     */
+    public function register(): void
+    {
+        // $this->reportable(function (Throwable $e) {
+        //     //
+        // });
+        $this->renderable(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, $request) {
+            try {
+                $ecommerceSharedData = EcommerceSharedDataService::get();
+            } catch (\Exception $ex) {
+                $ecommerceSharedData = [
+                    'staticLinks' => [],
+                    'navData' => [],
+                    'branchName' => '',
+                    'branchImage' => '',
+                    'phone' => '',
+                    'logo' => '',
+                    'branch' => null,
+                    'social' => null,
+                    'mapUrl' => '#',
+                    'footerCategories' => collect(),
+                ];
+            }
+
+            return response()->view('errors.404', compact('ecommerceSharedData'), 404);
+        });
+    }
+
+    public function render($request, Throwable $exception)
+    {
+        if ($exception instanceof ThrottleRequestsException) {
+            return redirect()->back()
+                ->withErrors(['error' => ' لقد قمت بالضغط كثير لتنفيذ الامر يرجي الانتظار حتي الانتهاء من الامور السابقة ']);
+        }
+
+        return parent::render($request, $exception);
+    }
+
+}
+<!--  -->
+
+@extends('layouts.app')
+@section('title', '404 — الصفحة غير موجودة')
+
+@section('content')
+    <div class="error-page">
+        <div class="error-page__code" aria-hidden="true">404</div>
+        <p class="error-page__msg">عذراً الصفحة التي تبحث عنها غير موجودة.</p>
+        <a href="{{ route('home') }}" class="btn hero__btn">
+            <i class="bi bi-arrow-right me-1" aria-hidden="true"></i>
+            العودة إلى الصفحة الرئيسية
+        </a>
+    </div>
+@endsection
+<!--  -->
+
+/* ── Page Header ── */
+.page-header {
+    background: var(--stroke);
+    padding-block: 1.75rem;
+    border-bottom: 1px solid var(--stroke);
+    margin-bottom: 0;
+    min-height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.page-header__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 0.4rem;
+}
+.breadcrumb-item a {
+    color: var(--primary);
+}
+.breadcrumb-item.active {
+    color: var(--text);
+}
+
+/* ── Filter Sidebar ── */
+.filter-card {
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.filter-card__header {
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--heading);
+    background: var(--bg-secondary);
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    text-align: right;
+    width: 100%;
+    transition: background var(--transition);
+}
+
+.filter-card__header:hover {
+    background: var(--stroke);
+}
+
+/* السهم بيتحول سموز */
+.filter-chevron {
+    transition: transform 0.25s ease;
+}
+.filter-card__body {
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.filter-count {
+    background: var(--bg-secondary);
+    border-radius: 99px;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.5rem;
+    color: var(--text);
+}
+.price-range {
+    width: 100%;
+    accent-color: var(--primary);
+}
+/* Color Swatch المحدث */
+.color-swatches {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    padding: 0.25rem 0;
+}
+
+.color-swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    transition:
+        transform 0.2s,
+        outline-color 0.2s,
+        border-color 0.2s;
+    flex-shrink: 0;
+}
+
+.color-swatch:hover {
+    transform: scale(1.15);
+}
+
+/* الـ active state — border بيظهر لما يتاختار */
+.color-swatch.is-active {
+    border-color: var(--white);
+    outline-color: var(--primary);
+}
+
+/* الـ disabled checkboxes تبان شفافة شوية */
+.form-check-input:disabled ~ .form-check-label {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Toolbar ── */
+.products-toolbar {
+    background: var(--white);
+    border-radius: var(--radius-md);
+}
+
+@media (max-width: 767px) {
+    .products-toolbar {
+        flex-direction: row-reverse;
+    }
+}
+.toolbar-sort {
+    font-size: 0.9rem;
+    border-radius: 12px;
+    border-color: var(--stroke);
+    padding: 4px 8px;
+}
+.products-count {
+    font-size: 0.9rem;
+}
+.view-toggle {
+    display: flex;
+    gap: 0.25rem;
+}
+.view-btn {
+    background: none;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-sm);
+    padding: 0.3rem 0.5rem;
+    color: var(--text);
+    cursor: pointer;
+    transition:
+        background var(--transition),
+        color var(--transition);
+}
+.view-btn.active,
+.view-btn:hover {
+    background: var(--primary);
+    color: var(--white);
+    border-color: var(--primary);
+}
+
+.products-section .products-grid {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 767px) {
+    .products-section .products-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ── List View ── */
+.products-grid--list {
+    grid-template-columns: 1fr !important;
+}
+
+.products-grid--list .product-card {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    max-width: 100% !important;
+    min-width: 0; /* مهم عشان الـ flex item ميتمددش برا */
+    max-height: 200px !important;
+}
+
+.products-grid--list .product-card__img-wrap {
+    max-width: 275px;
+    min-width: 120px;
+    flex-shrink: 0;
+    aspect-ratio: 1;
+    height: 168px;
+}
+
+.products-grid--list .product-card__body {
+    flex: 1;
+    min-width: 0; /* مهم جداً — بيمنع overflow في الـ flex */
+    padding-inline-start: 0.75rem;
+}
+
+.products-grid--list .product-card__name {
+    -webkit-line-clamp: 2;
+    font-size: 0.95rem;
+}
+
+.products-grid--single {
+    grid-template-columns: 1fr !important;
+}
+
+.products-grid--single .product-card {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    max-width: 100% !important;
+    min-width: 0;
+    max-height: 200px !important;
+}
+
+.products-grid--single .product-card__img-wrap {
+    width: 275px;
+    min-width: 100px;
+    height: 168px;
+    flex-shrink: 0;
+    aspect-ratio: 1;
+    background-color: var(--bg-secondary);
+}
+.products-grid--single .product-card__img-wrap img {
+    height: 122px;
+}
+
+.products-grid--single .product-card__body {
+    flex: 1;
+    min-width: 0;
+    padding-inline-start: 0.75rem;
+}
+
+/* ── Mobile: الكارت يملي العرض كامل دايماً ──
+   في الموبايل تحت 576 الكروت دايماً full width
+   سواء كانت في grid أو list
+*/
+@media (max-width: 575px) {
+    .products-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .products-grid .product-card {
+        width: 100%;
+    }
+
+    .products-grid--single,
+    .products-grid--list {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* .products-grid--single .product-card__img-wrap,
+    .products-grid--list .product-card__img-wrap {
+        width: 120px;
+        min-width: 120px;
+    } */
+}
+
+.products-pagination {
+    justify-content: flex-start !important;
+}
+
+/* Tablet — بدون sidebar */
+@media (min-width: 768px) and (max-width: 991px) {
+    #filtersSidebar {
+        display: none !important;
+    }
+    .col-lg-9 {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .products-grid:not(.products-grid--list) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.offcanvas {
+    z-index: 2000 !important;
+}
+
+.filter-btn button,
+.filter-btn button:active {
+    border: none !important;
+}
+
+@media (min-width: 768px) {
+    .filter-btn {
+        display: none !important;
+    }
+}
+
+.search-indicator__wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-secondary);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    padding: 0.625rem 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.search-indicator__text {
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.search-indicator__text strong {
+    color: var(--heading);
+}
+
+.search-indicator__count {
+    color: var(--text);
+    opacity: 0.7;
+    font-size: 0.85rem;
+}
+
+.search-indicator__clear {
+    font-size: 0.85rem;
+    color: var(--red);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+
+.search-indicator__clear:hover {
+    opacity: 0.7;
+}
+/* ── About Cards ── */
+.about-card {
+    background: var(--white);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: box-shadow var(--transition);
+}
+
+.about-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.about-card__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    background: var(--primary);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.about-card__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin: 0;
+}
+
+.about-card__text {
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.8;
+    margin: 0;
+}
+
+/* ── Team Cards ── */
+.team-card {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    height: 382px;
+    background-color: var(--bg-secondary);
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+}
+
+.team-card__img-wrap {
+    width: 100%;
+    height: 320px;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+    padding: var(--radius-md);
+}
+
+.team-card__img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+}
+
+/* Placeholder لو مفيش صورة */
+.team-card__img-wrap--placeholder {
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: var(--text);
+}
+
+.team-card__name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--heading);
+    margin: 0;
+}
+
+.team-card__role {
+    font-size: 0.78rem;
+    color: var(--text);
+    margin: 0;
+}
+
+/* ── About Branch Footer ── */
+.about-branch {
+    border-top: 1px solid var(--stroke);
+    padding-top: 2rem;
+}
+
+.about-branch__inner {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.about-branch__logo {
+    max-height: 48px;
+    width: auto;
+    object-fit: contain;
+}
+
+.about-branch__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.about-branch__info p {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+    color: var(--text);
+    margin: 0;
+}
+
+.about-branch__info i {
+    color: var(--primary);
+}
+
+@media (max-width: 575px) {
+    .about-branch__inner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* ══════════════════════
+   Contact Form
+══════════════════════ */
+.contact-map-wrap {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--stroke);
+}
+
+.contact-form-card,
+.contact-info-card {
+    background: var(--white);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    height: 100%;
+}
+
+.contact-form-card__title,
+.contact-info-card__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 1rem;
+}
+
+.contact-form-card__field {
+    margin-bottom: 1rem;
+}
+
+.contact-form-card .form-label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--heading);
+    margin-bottom: 0.35rem;
+    display: block;
+    text-align: right;
+}
+
+.contact-form-card .form-control {
+    border-radius: var(--radius-sm);
+    border-color: var(--stroke);
+    font-size: 0.9rem;
+    resize: none;
+    direction: rtl !important;
+}
+
+.contact-form-card .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 64, 102, 172), 0.12);
+}
+
+.contact-info-card__desc {
+    font-size: 0.88rem;
+    color: var(--text);
+    line-height: 1.7;
+    margin-bottom: 1.25rem;
+}
+
+.contact-info-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.contact-info-list__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.88rem;
+    color: var(--text);
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+#contactForm button[type="submit"] {
+    background-color: var(--stroke);
+    color: var(--text);
+    font-size: 0.88rem;
+    font-weight: bold;
+}
+
+#contactForm button[type="submit"]:hover {
+    background-color: var(--heading);
+    color: var(--white);
+}
+
+.contact-info-list__item i {
+    color: var(--text);
+    margin-top: 2px;
+}
+.contact-info-list__item a {
+    color: var(--text);
+    text-decoration: none;
+}
+.contact-info-list__item a:hover {
+    color: var(--primary);
+}
+
+/* ══════════════════════
+   Cart
+══════════════════════ */
+.cart-empty {
+    text-align: center;
+    padding: 4rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.cart-empty__icon {
+    font-size: 4rem;
+    color: var(--red);
+    opacity: 0.7;
+}
+
+.cart-empty__title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin: 0;
+}
+
+.cart-empty__desc {
+    font-size: 0.9rem;
+    color: var(--text);
+    max-width: 420px;
+    line-height: 1.7;
+    margin: 0;
+}
+
+.cart-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cart-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--white);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    flex-wrap: wrap;
+}
+
+.cart-item__img-wrap {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--stroke);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cart-item__img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.cart-item__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.cart-item__name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--heading);
+    text-decoration: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.cart-item__name:hover {
+    color: var(--primary);
+}
+
+.cart-item__prices {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+.cart-item__price {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--heading);
+}
+.cart-item__old-price {
+    font-size: 0.8rem;
+    color: var(--text);
+    text-decoration: line-through;
+}
+.cart-item__discount-label {
+    font-size: 0.75rem;
+    color: var(--red);
+}
+
+.cart-item__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.cart-qty {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.cart-qty__btn {
+    background: var(--bg-secondary);
+    border: none;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+        background 0.2s,
+        color 0.2s;
+}
+
+.cart-qty__btn:hover {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.cart-qty__val {
+    padding: 0 0.75rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-width: 32px;
+    text-align: center;
+}
+
+.cart-item__meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.cart-item__action-btn {
+    background: none;
+    border: none;
+    font-size: 0.82rem;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.cart-item__action-btn:hover {
+    color: var(--red);
+}
+
+.cart-item__total {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--heading);
+}
+
+.cart-summary {
+    background: var(--white);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    position: sticky;
+    top: 80px;
+}
+
+.cart-summary__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--stroke);
+}
+
+.cart-summary__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    font-size: 0.88rem;
+    color: var(--text);
+    border-bottom: 1px solid var(--stroke);
+}
+
+.cart-summary__row--total {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--heading);
+    border-bottom: none;
+    margin-top: 0.5rem;
+}
+
+.cart-summary__note {
+    font-size: 0.78rem;
+    color: var(--text);
+    opacity: 0.7;
+    margin-top: 0.5rem;
+}
+
+.cart-nav-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--stroke);
+    border-radius: 50%;
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+        background 0.2s,
+        color 0.2s;
+}
+
+.cart-nav-btn:hover {
+    background: var(--primary);
+    color: var(--white);
+    border-color: var(--primary);
+}
+
+/* ══════════════════════
+   Checkout
+══════════════════════ */
+.checkout-summary {
+    background: var(--white);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    position: sticky;
+    top: 80px;
+}
+
+.checkout-summary__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--stroke);
+}
+
+.checkout-summary__item {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--stroke);
+}
+
+.checkout-summary__item-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    flex-direction: row-reverse;
+}
+
+.checkout-summary__item-info img {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--stroke);
+    object-fit: contain;
+}
+
+.checkout-summary__item-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--heading);
+    margin: 0;
+}
+
+.checkout-summary__item-sub {
+    font-size: 0.78rem;
+    margin: 0;
+}
+
+.checkout-summary__item-prices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    color: var(--text);
+}
+
+.checkout-summary__total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--heading);
+}
+
+.checkout-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.checkout-step {
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.checkout-step--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.checkout-step__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-secondary);
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.checkout-step__num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.checkout-step__title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--heading);
+    margin: 0;
+}
+
+.checkout-step__body {
+    padding: 1.25rem;
+}
+
+.checkout-login-prompt {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* ══════════════════════
+   Error 404
+══════════════════════ */
+.error-page {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 1rem;
+    padding: 3rem 1rem;
+}
+
+.error-page__code {
+    font-size: clamp(5rem, 15vw, 10rem);
+    font-weight: 900;
+    color: var(--stroke);
+    line-height: 1;
+}
+
+.error-page__msg {
+    font-size: 1rem;
+    color: var(--text);
+    margin: 0;
+}
+
+/* ══════════════════════
+   Policy
+══════════════════════ */
+.policy-content {
+    max-width: 800px;
+}
+
+.policy-section {
+    margin-bottom: 2rem;
+}
+
+.policy-section h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 0.75rem;
+    text-align: right;
+}
+
+.policy-section p,
+.policy-section ol {
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.8;
+    text-align: right;
+    direction: rtl;
+}
+
+.policy-section ol {
+    padding-right: 1.25rem;
+    padding-left: 0;
+}
+.policy-section ol li {
+    margin-bottom: 0.4rem;
+}
+
+/* ══════════════════════
+   Error 404
+══════════════════════ */
+.error-page {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 1rem;
+    padding: 3rem 1rem;
+}
+
+.error-page__code {
+    font-size: clamp(5rem, 15vw, 10rem);
+    font-weight: 900;
+    color: var(--stroke);
+    line-height: 1;
+}
+
+.error-page__msg {
+    font-size: 1rem;
+    color: var(--text);
+    margin: 0;
+}
+
+/* أضف في products.css */
+
+/* ══════════════════════
+   Auth Pages
+══════════════════════ */
+
+.auth-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background: var(--bg-secondary);
+}
+
+.auth-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+}
+
+.auth-card__logo img {
+    max-height: 48px;
+    width: auto;
+    object-fit: contain;
+}
+
+.auth-card__title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin: 0;
+}
+
+.auth-card__desc {
+    font-size: 0.88rem;
+    color: var(--text);
+    margin: 0;
+    line-height: 1.6;
+}
+
+.auth-card__phone {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1rem;
+    margin: 0;
+    direction: ltr;
+}
+
+.auth-card__errors {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    text-align: right;
+}
+
+.auth-card__errors p {
+    font-size: 0.85rem;
+    color: var(--red);
+    margin: 0;
+}
+
+.auth-card__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    text-align: right;
+}
+
+.auth-card__label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--heading);
+}
+
+.auth-card__input {
+    padding: 0.65rem 0.875rem;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    color: var(--heading);
+    font-family: inherit;
+    direction: rtl;
+    text-align: right;
+    width: 100%;
+    transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
+}
+
+.auth-card__input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(64, 102, 172, 0.12);
+}
+
+.auth-card__input.is-invalid {
+    border-color: var(--red);
+}
+
+.auth-card__error-msg {
+    font-size: 0.78rem;
+    color: var(--red);
+}
+
+.auth-card__submit {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    border-radius: var(--radius-sm);
+}
+
+.auth-card__footer,
+.auth-card__terms {
+    font-size: 0.82rem;
+    color: var(--text);
+    margin: 0;
+}
+
+.auth-card__link {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.auth-card__link:hover {
+    text-decoration: underline;
+}
+
+.auth-card__resend {
+    font-size: 0.82rem;
+    color: var(--text);
+    margin: 0;
+}
+
+/* ── OTP Inputs ── */
+.otp-inputs {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    direction: ltr; /* الأرقام من اليسار لليمين */
+}
+
+.otp-input {
+    width: 48px;
+    height: 56px;
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--heading);
+    border: 2px solid var(--stroke);
+    border-radius: var(--radius-sm);
+    transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
+    caret-color: var(--primary);
+}
+
+.otp-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(64, 102, 172, 0.12);
+}
+
+/* لما فيه قيمة */
+.otp-input:not(:placeholder-shown) {
+    border-color: var(--primary);
+    background: rgba(64, 102, 172, 0.04);
+}
+
+/* لو كان في error */
+.otp-input.is-invalid {
+    border-color: var(--red);
+}
+
+/* زرار المتابعة لما يكتمل */
+.auth-card__submit.is-ready {
+    background: var(--primary);
+    opacity: 1;
+}
+
+/* ── Welcome Page ── */
+.auth-welcome__icon {
+    font-size: 3.5rem;
+    color: #16a34a;
+}
+
+/* ── Delete Confirm Modal ── */
+#deleteConfirmModal .modal-content {
+    border-radius: var(--radius-lg);
+    border: none;
+    box-shadow: var(--shadow-md);
+}
+
+/* ── Wishlist Active State ── */
+.product-card__wish-btn.is-wishlisted i,
+.pd-wish-btn.is-wishlisted i,
+.js-save-later.is-wishlisted i {
+    color: var(--red);
+}
+
+.product-card__wish-btn.is-wishlisted {
+    border-color: var(--red);
+}
+
+@media (max-width: 420px) {
+    .auth-card {
+        padding: 2rem 1.25rem;
+    }
+    .otp-input {
+        width: 40px;
+        height: 48px;
+        font-size: 1.1rem;
+    }
+}
+<!--  -->

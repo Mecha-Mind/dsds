@@ -1,0 +1,1240 @@
+@php
+    $Page_title = $ecommerceSharedData['branch']->branch_name . ' - جميع المنتجات';
+    $description =
+        'تصفح جميع المنتجات المتوفرة في فرع ' .
+        $ecommerceSharedData['branch']->branch_name .
+        ' بأسعار مميزة وجودة عالية.';
+    $keywords = 'منتجات, ' . $ecommerceSharedData['branch']->branch_name . ', تسوق, عروض, أسعار, منتجات أصلية';
+    $og_title = $ecommerceSharedData['branch']->branch_name . ' - جميع المنتجات';
+    $og_description =
+        'اكتشف أفضل المنتجات والعروض في فرع ' .
+        $ecommerceSharedData['branch']->branch_name .
+        '، جودة وأسعار تنافسية بانتظارك!';
+    $og_image = url('/images/brancheslogo/' . $ecommerceSharedData['branch']->branch_image);
+    $og_type = 'website';
+
+@endphp
+
+@extends('layouts.app')
+
+
+@section('title', $Page_title)
+@section('description', $description)
+
+@section('title', 'المنتجات — ' . ($ecommerceSharedData['branchName'] ?? ''))
+
+@section('content')
+
+    {{-- Page Header --}}
+    <x-page-header title="المنتجات" :breadcrumbs="[
+        ['name' => 'الرئيسية', 'url' => route('home')],
+        ['name' => 'المنتجات', 'url' => route('EcommerceAllProducts')],
+    ]" />
+
+
+    {{-- Search Result Indicator --}}
+    @if (request()->filled('search'))
+        <div class="search-indicator container mt-3">
+            <div class="search-indicator__wrap">
+                <span class="search-indicator__text">
+                    <i class="bi bi-search me-1"></i>
+                    نتائج البحث عن:
+                    <strong>"{{ request('search') }}"</strong>
+                    <span class="search-indicator__count">
+                        ({{ $Products->total() }} نتيجة)
+                    </span>
+                </span>
+                <a href="{{ route('EcommerceAllProducts') }}" class="search-indicator__clear" aria-label="Clear search">
+                    <i class="bi bi-x-circle me-1"></i>
+                    مسح البحث
+                </a>
+            </div>
+        </div>
+    @endif
+
+    {{-- Brands Bar --}}
+    @include('components.brand-logos')
+
+
+    <div class="container py-4">
+        <div class="row g-4">
+
+
+
+            {{-- Search Bar ────────────────────────────────
+            <div class="search-bar-wrap mb-4">
+                <div class="search-bar">
+                    <i class="bi bi-search search-bar__icon"></i>
+                    <input type="text" id="searchInput" class="search-bar__input" placeholder="ابحث عن منتج..."
+                        value="{{ request('search') }}" autocomplete="off">
+                    {{-- X لمسح البحث --}}
+            {{-- <button class="search-bar__clear d-none" id="searchClear" type="button" aria-label="مسح البحث">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                {{-- نتيجة البحث Live --}}
+            {{-- <div class="search-status" id="searchStatus"></div>
+            </div>  --}}
+
+
+
+            {{-- ════════════════════════════════
+             Sidebar — الفلترة
+        ════════════════════════════════ --}}
+            <aside class="col-lg-3 d-none d-lg-block">
+                <form method="GET" action="{{ route('EcommerceAllProducts') }}" id="filtersForm">
+                    <input type="hidden" name="search" value="{{ request('search') }}">
+
+                    {{-- ── متاح في الفروع ──
+                        مربوط بجدول stocks عن طريق stock_branch
+                    --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#filterBranchs"
+                                aria-expanded="false">
+                            <span>متاح في الفروع</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterBranchs">
+                            @foreach($branches as $b)
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox"
+                                    name="branchs[]"
+                                    value="{{ $b->branch_id }}"
+                                    id="branch_{{ $b->branch_id }}"
+                                    {{ in_array($b->branch_id, request('branchs', [])) ? 'checked' : '' }}
+                                    onchange="this.form.submit()">
+                                <label class="form-check-label" for="branch_{{ $b->branch_id }}">
+                                    {{ $b->branch_name }}
+                                </label>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- ── الماركة ──
+                        مربوط بـ product_maintenancecompany في جدول products
+                    --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#filterBrand"
+                                aria-expanded="false">
+                            <span>الماركة</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterBrand">
+                            @foreach($FilterBrands as $b)
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox"
+                                    name="maintenancecompanies[]"
+                                    value="{{ $b->maintenancecompany_id }}"
+                                    id="brand_{{ $b->maintenancecompany_id }}"
+                                    {{ in_array($b->maintenancecompany_id, request('maintenancecompanies', [])) ? 'checked' : '' }}
+                                    onchange="this.form.submit()">
+                                <label class="form-check-label" for="brand_{{ $b->maintenancecompany_id }}">
+                                    {{ $b->maintenancecompany_title }}
+                                </label>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- ── السعر ──
+                        مربوط بـ product_sellprice
+                    --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#filterPrice"
+                                aria-expanded="true">
+                            <span>السعر</span>
+                            <i class="bi bi-chevron-up filter-chevron"></i>
+                        </button>
+                        <div class="collapse show filter-card__body" id="filterPrice">
+                            <div class="d-flex justify-content-between mb-2 small fw-semibold">
+                                <span>{{ number_format($minPrice ?? 0) }} ج.م</span>
+                                <span id="priceValMax">
+                                    {{ number_format(request('max_price', $maxPrice ?? 100000)) }} ج.م
+                                </span>
+                            </div>
+                            <input type="range" class="price-range w-100"
+                                name="max_price"
+                                min="{{ $minPrice ?? 0 }}"
+                                max="{{ $maxPrice ?? 100000 }}"
+                                value="{{ request('max_price', $maxPrice ?? 100000) }}"
+                                oninput="document.getElementById('priceValMax').textContent = Number(this.value).toLocaleString('ar-EG') + ' ج.م'"
+                                onchange="this.form.submit()">
+                        </div>
+                    </div>
+
+                    {{-- ── اللون ──
+                        مربوط بـ product_color في جدول products
+                        بنجيب الألوان المتاحة فعلاً من الـ DB
+                    --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#filterColor"
+                                aria-expanded="false">
+                            <span>اللون</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterColor">
+                            @if(isset($availableColors) && $availableColors->count())
+                                {{--
+                                    ألوان حقيقية من الـ DB
+                                    لو product_color بيخزن نص عربي زي "أسود" أو إنجليزي "black"
+                                    بيظهروا كـ checkboxes
+                                --}}
+                                @foreach($availableColors as $color)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                        name="color[]"
+                                        value="{{ $color }}"
+                                        id="color_{{ $loop->index }}"
+                                        {{ in_array($color, request('color', [])) ? 'checked' : '' }}
+                                        onchange="this.form.submit()">
+                                    <label class="form-check-label" for="color_{{ $loop->index }}">
+                                        {{ $color }}
+                                    </label>
+                                </div>
+                                @endforeach
+                            @else
+                                {{-- Fallback: لو مفيش ألوان في الـ DB --}}
+                                <div class="color-swatches">
+                                    <input type="hidden" name="color" id="colorInput" value="{{ request('color') }}">
+                                    @foreach([
+                                        ['val'=>'أسود',  'hex'=>'#111'],
+                                        ['val'=>'أبيض',  'hex'=>'#f0f0f0'],
+                                        ['val'=>'أزرق',  'hex'=>'#2563eb'],
+                                        ['val'=>'أحمر',  'hex'=>'#ef4444'],
+                                        ['val'=>'أخضر',  'hex'=>'#22c55e'],
+                                        ['val'=>'ذهبي',  'hex'=>'#f59e0b'],
+                                    ] as $c)
+                                    <button type="button"
+                                            class="color-swatch {{ request('color') === $c['val'] ? 'active' : '' }}"
+                                            style="background:{{ $c['hex'] }}"
+                                            title="{{ $c['val'] }}"
+                                            onclick="document.getElementById('colorInput').value='{{ $c['val'] }}';this.form.submit()">
+                                    </button>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- ── التصنيف الفرعي ──
+                        مربوط بـ product_category2 في جدول products → subcategories
+                        دلوقتي بيحل محل storage/ram اللي كانت static
+                    --}}
+                    @if(isset($FilterSubcategories) && $FilterSubcategories->count())
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#filterSubcat"
+                                aria-expanded="false">
+                            <span>التصنيف</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterSubcat">
+                            @foreach($FilterSubcategories as $sub)
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox"
+                                    name="subcategory[]"
+                                    value="{{ $sub->subcategory_id }}"
+                                    id="subcat_{{ $sub->subcategory_id }}"
+                                    {{ in_array($sub->subcategory_id, request('subcategory', [])) ? 'checked' : '' }}
+                                    onchange="this.form.submit()">
+                                <label class="form-check-label" for="subcat_{{ $sub->subcategory_id }}">
+                                    {{ $sub->subcategory_name }}
+                                </label>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- ── الموديل ──
+                        مربوط بـ product_maintenancemodel → MaintenanceModel
+                        ← لو maintenancemodel_delete مش موجود في جدول maintenancemodels
+                            اشيل الـ where من الـ controller واجيب الكل بـ ::all()
+                    --}}
+                    @if(isset($FilterModels) && $FilterModels->count())
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#filterModel"
+                                aria-expanded="false">
+                            <span>الموديل</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterModel">
+                            @foreach($FilterModels as $m)
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox"
+                                    name="model[]"
+                                    value="{{ $m->maintenancemodel_id }}"
+                                    id="model_{{ $m->maintenancemodel_id }}"
+                                    {{ in_array($m->maintenancemodel_id, request('model', [])) ? 'checked' : '' }}
+                                    onchange="this.form.submit()">
+                                <label class="form-check-label" for="model_{{ $m->maintenancemodel_id }}">
+                                    {{--
+                                        ← اسم الـ column بتاع الاسم في جدول maintenancemodels
+                                        شوف الـ MaintenanceModel model واعرف الاسم الصح
+                                    --}}
+                                    {{ $m->maintenancemodel_title ?? $m->maintenancemodel_name ?? '—' }}
+                                </label>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- ── نوع الجهاز / الفئة ──
+                        مربوط بـ product_maintenancecategory → MaintenanceCategory
+                        ← نفس الكلام — تأكد من اسم الـ column
+                    --}}
+                    <!-- @if(isset($FilterMaintenanceCategories) && $FilterMaintenanceCategories->count()) -->
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#filterMCat"
+                                aria-expanded="false">
+                            <span>نوع الجهاز</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterMCat">
+                            @foreach($FilterMaintenanceCategories as $mc)
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox"
+                                    name="maintenancecategory[]"
+                                    value="{{ $mc->maintenancecategory_id }}"
+                                    id="mcat_{{ $mc->maintenancecategory_id }}"
+                                    {{ in_array($mc->maintenancecategory_id, request('maintenancecategory', [])) ? 'checked' : '' }}
+                                    onchange="this.form.submit()">
+                                <label class="form-check-label" for="mcat_{{ $mc->maintenancecategory_id }}">
+                                    {{ $mc->maintenancecategory_title ?? '—' }}
+                                </label>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    <!-- @endif -->
+
+                    {{-- ── إعادة الضبط ── --}}
+                    @if(request()->hasAny([
+                        'search', 'category', 'maintenancecompanies', 'max_price',
+                        'color', 'sort', 'branchs', 'subcategory', 'model', 'maintenancecategory'
+                    ]))
+                    <a href="{{ route('EcommerceAllProducts') }}"
+                    class="btn btn-outline-danger btn-sm w-100 mb-3">
+                        <i class="bi bi-x-circle me-1"></i>
+                        إعادة ضبط الفلترة
+                    </a>
+                    @endif
+
+                </form>
+            </aside>
+
+            {{-- ════════════════════════════════
+             Main Content — المنتجات
+        ════════════════════════════════ --}}
+            <div class="col-lg-9 col-12 products-section">
+
+                {{-- Toolbar --}}
+                <div class="products-toolbar d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+
+                    {{-- اليسار: الترتيب --}}
+                    <div class="d-flex align-items-center gap-2 filter-select">
+                        <select class="form-select form-select-sm toolbar-sort" name="sort" form="filtersForm"
+                            onchange="document.getElementById('filtersForm').submit()">
+                            <option value="latest" {{ request('sort') === 'latest' ? 'selected' : '' }}>الأكثر مبيعا
+                            </option>
+                            <option value="price_asc" {{ request('sort') === 'price_asc' ? 'selected' : '' }}>السعر:
+                                من
+                                الأقل</option>
+                            <option value="price_desc"{{ request('sort') === 'price_desc' ? 'selected' : '' }}>السعر:
+                                من
+                                الأعلى</option>
+                        </select>
+                    </div>
+
+                    {{-- اليمين: العدد + View Toggle + فلتر موبايل --}}
+                    <div class="d-flex align-items-center gap-2">
+
+
+                        {{-- Desktop + Tablet --}}
+                        <div class="view-toggle d-none d-md-flex">
+                            <button class="view-btn" id="gridViewBtn" title="شبكة">
+                                <i class="bi bi-grid"></i>
+                            </button>
+                            <button class="view-btn" id="listViewBtn" title="قائمة">
+                                <i class="bi bi-list-ul"></i>
+                            </button>
+                        </div>
+
+                        {{-- Mobile فقط --}}
+                        <div class="view-toggle d-flex d-md-none">
+                            <button class="view-btn" id="gridView2Btn" title="عمودين">
+                                <i class="bi bi-grid"></i>
+                            </button>
+                            <button class="view-btn" id="gridView1Btn" title="عمود واحد">
+                                <i class="bi bi-list-ul"></i>
+                            </button>
+                        </div>
+
+
+
+                    </div>
+
+                    {{-- فلتر موبايل --}}
+                    <div class="d-flex align-items-center gap-2 filter-btn">
+
+
+                        {{-- فلتر موبايل --}}
+                        <button class="btn btn-outline-secondary btn-sm d-lg-none" type="button"
+                            data-bs-toggle="offcanvas" data-bs-target="#mobileFilters">
+                            <i class="bi bi-funnel"></i>
+                            فلترة
+                        </button>
+
+                    </div>
+                </div>
+
+                {{-- Products Grid --}}
+                <div class="products-grid" id="productsGrid">
+
+                    @forelse($Products as $ep)
+                        <x-product-card :id="$ep->ecommerceproduct_id" :name="$ep->product?->product_name ?? ''" :price="$ep->product?->product_sellprice ?? 0" :offerPrice="$ep->product?->product_offerprice ?? null"
+                            :image="$ep->product?->product_image ?? ''" route="ProductDetails" :hasOffer="($ep->product?->product_offerprice ?? 0) > 0 &&
+                                $ep->product?->product_offerprice < $ep->product?->product_sellprice" />
+                    @empty
+                        <div class="col-12 text-center py-5">
+                            <i class="bi bi-search" style="font-size: 3rem; color: var(--text)"></i>
+                            <p class="mt-3 text-muted">لا توجد منتجات</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                {{-- Pagination --}}
+                @if ($Products->hasPages())
+                    <div class="products-pagination mt-4 d-flex justify-content-center align-items-center gap-2 flex-wrap">
+
+                        @if ($Products->onFirstPage())
+                            <button class="pagination-btn" disabled>السابق</button>
+                        @else
+                            <a href="{{ $Products->previousPageUrl() }}" class="pagination-btn"
+                                id="prevPage">السابق</a>
+                        @endif
+
+                        @foreach ($Products->getUrlRange(1, $Products->lastPage()) as $page => $url)
+                            <a href="{{ $url }}"
+                                class="pagination-btn {{ $page === $Products->currentPage() ? 'active' : '' }}"
+                                id="activePage">
+                                {{ $page }}
+                            </a>
+                        @endforeach
+
+                        @if ($Products->hasMorePages())
+                            <a href="{{ $Products->nextPageUrl() }}" class="pagination-btn" id="nextPage">التالي</a>
+                        @else
+                            <button class="pagination-btn" disabled>التالي</button>
+                        @endif
+
+                    </div>
+                @endif
+
+            </div>
+        </div>
+    </div>
+
+
+    {{-- Mobile Offcanvas --}}
+    <div class="offcanvas offcanvas-end" id="mobileFilters" tabindex="-1">
+        <div class="offcanvas-header border-bottom">
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+            <h5 class="offcanvas-title mb-0">الفلترة</h5>
+        </div>
+        <div class="offcanvas-body">
+            <form method="GET" action="{{ route('EcommerceAllProducts') }}">
+                <div class="filter-card mb-3">
+                    <div class="filter-card__header">التصنيفات</div>
+                    <div class="filter-card__body">
+                        @foreach ($FilterCategories as $cat)
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="category[]"
+                                    value="{{ $cat->category_id }}"
+                                    {{ in_array($cat->category_id, request('category', [])) ? 'checked' : '' }}>
+                                <label class="form-check-label d-flex justify-content-between">
+                                    <span>{{ $cat->category_name }}</span>
+                                    <span class="filter-count">{{ $cat->ecommerce_products_count }}</span>
+                                </label>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="filter-card mb-3">
+                    <div class="filter-card__header">الشركة</div>
+                    <div class="filter-card__body">
+                        @foreach ($FilterBrands as $brand)
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="brand[]"
+                                    value="{{ $brand->maintenancecompany_id }}"
+                                    {{ in_array($brand->maintenancecompany_id, request('brand', [])) ? 'checked' : '' }}>
+                                <label class="form-check-label">{{ $brand->maintenancecompany_title }}</label>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                <button type="submit" class="btn hero__btn w-100 mt-3" aria-label="filter">
+                    <i class="bi bi-funnel me-1"></i>
+                    تطبيق الفلترة
+                </button>
+                @if (request()->hasAny(['category', 'brand', 'max_price', 'color', 'warranty', 'search']))
+                    <a href="{{ route('EcommerceAllProducts') }}" class="btn btn-outline-danger w-100 mt-2"
+                        id="filterReset">
+                        إعادة الضبط
+                    </a>
+                @endif
+            </form>
+        </div>
+    </div>
+
+
+@endsection
+
+@push('scripts')
+    <script>
+        (function() {
+            'use strict';
+
+            // ── العناصر ──
+            let grid = document.getElementById('productsGrid');
+            let paginWrap = document.getElementById('paginationWrap');
+            let countEl = document.getElementById('productsCount');
+            let searchInput = document.getElementById('searchInput');
+            let searchClear = document.getElementById('searchClear');
+            let hiddenSearch = document.getElementById('hiddenSearch');
+            let searchStatus = document.getElementById('searchStatus');
+
+            if (!grid) return;
+
+            // ══════════════════════════════════════
+            // View Toggle — حل مشكلة التعليق
+            // منطق واحد واضح: نحدد الـ state الحالي
+            // ونشيل كل الـ classes القديمة أول
+            // ══════════════════════════════════════
+            let VIEWS = {
+                GRID: '', // لا كلاس
+                LIST: 'products-grid--list',
+                SINGLE: 'products-grid--single',
+            };
+
+            function setView(viewKey) {
+                // امسح كل الـ view classes الممكنة
+                Object.values(VIEWS).forEach(function(cls) {
+                    if (cls) grid.classList.remove(cls);
+                });
+
+                // ضيف الجديدة
+                if (VIEWS[viewKey]) {
+                    grid.classList.add(VIEWS[viewKey]);
+                }
+
+                // حدّث الأزرار
+                ['gridViewBtn', 'listViewBtn', 'gridView2Btn', 'gridView1Btn'].forEach(function(id) {
+                    let btn = document.getElementById(id);
+                    if (btn) btn.classList.remove('active');
+                });
+
+                let activeMap = {
+                    GRID: ['gridViewBtn'],
+                    LIST: ['listViewBtn'],
+                    SINGLE: ['gridView1Btn'],
+                };
+
+                (activeMap[viewKey] || []).forEach(function(id) {
+                    let btn = document.getElementById(id);
+                    if (btn) btn.classList.add('active');
+                });
+
+                // احفظ في localStorage
+                localStorage.setItem('productView', viewKey);
+            }
+
+            // Restore
+            let savedView = localStorage.getItem('productView') || 'GRID';
+            setView(savedView);
+
+            // Events
+            let btnMap = {
+                'gridViewBtn': 'GRID',
+                'listViewBtn': 'LIST',
+                'gridView2Btn': 'GRID',
+                'gridView1Btn': 'SINGLE',
+            };
+
+            Object.keys(btnMap).forEach(function(id) {
+                let btn = document.getElementById(id);
+                if (btn) {
+                    btn.addEventListener('click', function() {
+                        setView(btnMap[id]);
+                    });
+                }
+            });
+
+            // ══════════════════════════════════════
+            // Collapse chevron
+            // ══════════════════════════════════════
+            document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(btn) {
+                let target = document.querySelector(btn.getAttribute('data-bs-target'));
+                let chevron = btn.querySelector('.filter-chevron');
+                if (!target || !chevron) return;
+
+                target.addEventListener('show.bs.collapse', function() {
+                    chevron.classList.replace('bi-chevron-down', 'bi-chevron-up');
+                });
+                target.addEventListener('hide.bs.collapse', function() {
+                    chevron.classList.replace('bi-chevron-up', 'bi-chevron-down');
+                });
+            });
+
+            // ══════════════════════════════════════
+            // Pagination — AJAX
+            // لما المستخدم يضغط على رقم صفحة
+            // بنعمل fetch بدل redirect
+            // ══════════════════════════════════════
+            document.addEventListener('click', function(e) {
+                let paginBtn = e.target.closest('#paginationWrap .pagination-btn');
+                if (!paginBtn || paginBtn.tagName === 'BUTTON') return; // disabled buttons
+
+                e.preventDefault();
+
+                let href = paginBtn.getAttribute('href');
+                if (!href || href === '#') return;
+
+                grid.style.opacity = '0.5';
+
+                fetch(href, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                    })
+                    .then(function(res) {
+                        return res.json();
+                    })
+                    .then(function(data) {
+                        grid.innerHTML = data.html;
+                        if (paginWrap) paginWrap.innerHTML = data.pagination;
+                        if (countEl) countEl.textContent = data.total + ' منتج';
+                        window.history.replaceState(null, '', href);
+                        grid.style.opacity = '1';
+
+                        // scroll للأعلى
+                        grid.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+
+                        // أعد تطبيق الـ view
+                        let currentView = localStorage.getItem('productView') || 'GRID';
+                        if (VIEWS[currentView]) grid.classList.add(VIEWS[currentView]);
+                    })
+                    .catch(function() {
+                        grid.style.opacity = '1';
+                    });
+            });
+
+        })();
+    </script>
+@endpush
+<?php
+
+namespace App\Http\Controllers\Ecommerce\Products;
+
+use App\Http\Controllers\Controller;
+use App\Models\Branche;
+use App\Models\Category;
+use App\Models\EcommerceProduct;
+use App\Models\MaintenanceCompany;
+use App\Models\Product;
+use App\Models\MaintenanceModel;
+use App\Models\MaintenanceCategory;
+use App\Services\EcommerceSharedDataService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+
+class EcommerceAllProductsController extends Controller
+{
+    public function EcommerceAllProducts(Request $request)
+    {
+        $ecommerceSharedData = EcommerceSharedDataService::get();
+        $ecommerceSharedData['pageTitle'] = 'جميع المنتجات';
+
+        $branches = Branche::where('branch_delete', '0')
+            ->where('branch_services', '0')
+            ->get();
+
+        $PartnerCompanies = MaintenanceCompany::where('maintenancecompany_active', '1')
+            ->whereNotNull('maintenancecompany_image')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        $FilterCategories = Category::where('category_displaystatus', 1)
+            ->get()
+            ->map(function ($cat) {
+                $cat->ecommerce_products_count = EcommerceProduct::where('ecommerceproduct_displaystatus', 1)
+                    ->whereHas(
+                        'product',
+                        fn($q) =>
+                        $q->where('product_category', $cat->category_id)
+                            ->where('product_delete', 0)
+                    )->count();
+                return $cat;
+            })
+            ->filter(fn($cat) => $cat->ecommerce_products_count > 0)
+            ->values();
+        $FilterBrands = MaintenanceCompany::where('maintenancecompany_active', 1)
+            ->where('maintenancecompany_delete', '0')
+            ->get();
+
+        $priceStats = DB::table('products')
+            ->where('product_delete', 0)
+            ->selectRaw('MIN(product_sellprice) as min_price, MAX(product_sellprice) as max_price')
+            ->first();
+
+
+        $minPrice = (int)($priceStats->min_price ?? 0);
+        $maxPrice = (int)($priceStats->max_price ?? 100000);
+
+        // ── Query ──
+        $query = EcommerceProduct::where('ecommerceproduct_displaystatus', 1)
+            ->with('product');
+
+        // Search
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->whereHas(
+                'product',
+                fn($q) =>
+                $q->where(
+                    fn($sub) =>
+                    $sub->where('product_name', 'LIKE', "%{$search}%")
+                        ->orWhere('product_description', 'LIKE', "%{$search}%")
+                )->where('product_delete', 0)
+            );
+        }
+
+        // Category filter
+        if ($request->filled('category')) {
+            $query->whereHas(
+                'product',
+                fn($q) =>
+                $q->whereIn('product_category', $request->category)
+            );
+        }
+
+        // Brand/Company filter
+        if ($request->filled('maintenancecompanies')) {
+            $query->whereHas(
+                'product',
+                fn($q) =>
+                $q->whereIn('product_maintenancecompany', $request->maintenancecompanies)
+            );
+        }
+
+        // Price filter
+        if ($request->filled('max_price')) {
+            $query->whereHas(
+                'product',
+                fn($q) =>
+                $q->where('product_sellprice', '<=', (int)$request->max_price)
+            );
+        }
+        // في EcommerceAllProducts() — بعد Color filter وقبل Sort
+
+        // Color filter — مرة واحدة بس (كان متكرر 3 مرات)
+        // if ($request->filled('color')) {
+        //     $query->whereHas('product', fn($q) =>
+        //         $q->where('product_color', $request->color)
+        //     );
+        // }
+        // وغيّر من filled('color') لـ array
+        if ($request->filled('color')) {
+            $colors = (array)$request->color; // يشتغل مع color واحد أو array
+            $query->whereHas('product', fn($q) =>
+                $q->whereIn('product_color', $colors)
+            );
+        }
+        /*
+        | Stock/Branches filter
+        | جدول stocks فيه: stock_branch, stock_product, stock_quantity
+        | لما المستخدم يختار فرع بنجيب المنتجات اللي عندها stock في الفرع ده
+        */
+        if ($request->filled('branchs')) {
+            $branchIds = $request->branchs;
+            $productIdsInBranch = \App\Models\Stock::whereIn('stock_branch', $branchIds)
+                ->where('stock_delete', 0)
+                ->where('stock_quantity', '>', 0)
+                ->pluck('stock_product')
+                ->unique()
+                ->toArray();
+
+            $query->whereHas('product', fn($q) =>
+                $q->whereIn('product_id', $productIdsInBranch)
+            );
+        }
+
+        /*
+        | Subcategory filter (اللي احنا بنسميه storage/ram في الـ view)
+        | product_category2 بيخزن الـ subcategory_id
+        | دلوقتي هنعمل فلتر بالـ subcategory
+        | ← لما تبقا عاوز تربطه بـ storage/ram حقيقي محتاج columns جديدة في الـ DB
+        */
+        if ($request->filled('subcategory')) {
+            $query->whereHas('product', fn($q) =>
+                $q->whereIn('product_category2', $request->subcategory)
+            );
+        }
+
+        /*
+        | MaintenanceModel filter
+        | product_maintenancemodel بيخزن الـ model (شاومي ريدمي، ايفون 14 ...)
+        */
+        if ($request->filled('model')) {
+            $query->whereHas('product', fn($q) =>
+                $q->whereIn('product_maintenancemodel', $request->model)
+            );
+        }
+
+        /*
+        | MaintenanceCategory filter
+        | product_maintenancecategory بيخزن نوع الجهاز (موبايل، تابلت ...)
+        */
+        if ($request->filled('maintenancecategory')) {
+            $query->whereHas('product', fn($q) =>
+                $q->whereIn('product_maintenancecategory', $request->maintenancecategory)
+            );
+        }
+        // Sort
+        if ($request->sort === 'price_asc') {
+            $query->join('products as p_sort', 'ecommerceproducts.product_id', '=', 'p_sort.product_id')
+                ->orderBy('p_sort.product_sellprice', 'asc')
+                ->select('ecommerceproducts.*');
+        } elseif ($request->sort === 'price_desc') {
+            $query->join('products as p_sort', 'ecommerceproducts.product_id', '=', 'p_sort.product_id')
+                ->orderBy('p_sort.product_sellprice', 'desc')
+                ->select('ecommerceproducts.*');
+        } else {
+            $query->orderBy('ecommerceproducts.updated_at', 'desc');
+        }
+
+        $Products = $query->paginate(12)->withQueryString();
+
+        $FilterModels = \App\Models\MaintenanceModel::where('maintenancemodel_delete', 0)
+            ->get();
+            // ← لو مفيش column maintenancemodel_delete امسح الـ where
+
+        $FilterMaintenanceCategories = \App\Models\MaintenanceCategory::where('maintenancecategory_delete', 0)
+            ->get();
+            // ← نفس الكلام
+
+        $FilterSubcategories = \App\Models\Subcategory::where('subcategory_displaystatus', 1)
+            ->get();
+
+        // وامسح $colorsStats لأنها بترجع كل الـ products وده ثقيل
+        // واستبدلها بـ:
+        $availableColors = \App\Models\Product::where('product_delete', 0)
+            ->whereNotNull('product_color')
+            ->where('product_color', '!=', '')
+            ->distinct()
+            ->pluck('product_color')
+            ->filter()
+            ->values();
+
+        return view('ecommerce.EcommerceAllProducts.EcommerceAllProducts', compact(
+            'ecommerceSharedData',
+            'PartnerCompanies',
+            'FilterCategories',
+            'FilterBrands',
+            'FilterSubcategories',
+            'FilterModels',
+            'FilterMaintenanceCategories',
+            'Products',
+            'minPrice',
+            'maxPrice',
+            'branches',
+            'availableColors',
+        ));
+    }
+
+    public function EcommerceAllProductsproductineachrow()
+    {
+
+        $ecommerceSharedData = EcommerceSharedDataService::get();
+        $ecommerceSharedData['pageTitle'] = 'جميع المنتجات';
+        $PartnerCompanies = MaintenanceCompany::where('maintenancecompany_active', '1')
+            ->whereNotNull('maintenancecompany_image')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+
+        $Products = Product::all();
+
+        $AllEcommerceProducts = EcommerceProduct::where('ecommerceproduct_displaystatus', '1')
+            ->orderBy('updated_at', 'desc')
+            ->paginate(20);
+
+        return view('ecommerce.EcommerceAllProducts.EcommerceAllProductsproductineachrow', compact('Products', 'AllEcommerceProducts', 'ecommerceSharedData', 'PartnerCompanies'));
+    }
+
+    public function EcommerceAllProductsserachforproductPost(Request $request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            '_token' => 'required|string',
+            'search' => 'required|string|min:2|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $search = $request->search;
+
+        $search = trim($request->input('search'));
+
+        $ProductsIDS = Product::where(function ($query) use ($search) {
+            $query->where('product_name', 'LIKE', "%{$search}%")
+                ->orWhere('product_category', 'LIKE', "%{$search}%")
+                ->orWhere('product_maintenancemodel', 'LIKE', "%{$search}%")
+                ->orWhere('product_maintenancecategory', 'LIKE', "%{$search}%")
+                ->orWhere('product_maintenancecompany', 'LIKE', "%{$search}%")
+                ->orWhere('product_description', 'LIKE', "%{$search}%");
+        })->pluck('product_id');
+
+        $AllEcommerceProducts = EcommerceProduct::where('ecommerceproduct_displaystatus', '1')
+            ->whereIn('product_id', $ProductsIDS)
+            ->orderBy('updated_at', 'desc')
+            ->paginate(20);
+
+        $Products = Product::all();
+
+        $ecommerceSharedData = EcommerceSharedDataService::get();
+        $ecommerceSharedData['pageTitle'] = 'جميع المنتجات';
+        $PartnerCompanies = MaintenanceCompany::where('maintenancecompany_active', '1')
+            ->whereNotNull('maintenancecompany_image')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return view('ecommerce.EcommerceAllProducts.EcommerceAllProductsserachforproduct', compact('Products', 'AllEcommerceProducts', 'ecommerceSharedData', 'PartnerCompanies'));
+    }
+
+    public function EcommerceAllProductsserachforproductrowPost(Request $request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            '_token' => 'required|string',
+            'search' => 'required|string|min:2|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $search = $request->search;
+
+        $search = trim($request->input('search'));
+
+        $ProductsIDS = Product::where(function ($query) use ($search) {
+            $query->where('product_name', 'LIKE', "%{$search}%")
+                ->orWhere('product_category', 'LIKE', "%{$search}%")
+                ->orWhere('product_maintenancemodel', 'LIKE', "%{$search}%")
+                ->orWhere('product_maintenancecategory', 'LIKE', "%{$search}%")
+                ->orWhere('product_maintenancecompany', 'LIKE', "%{$search}%")
+                ->orWhere('product_description', 'LIKE', "%{$search}%");
+        })->pluck('product_id');
+
+        $AllEcommerceProducts = EcommerceProduct::where('ecommerceproduct_displaystatus', '1')
+            ->whereIn('product_id', $ProductsIDS)
+            ->orderBy('updated_at', 'desc')
+            ->paginate(20);
+
+        $Products = Product::all();
+
+
+        $PartnerCompanies = MaintenanceCompany::where('maintenancecompany_active', '1')
+            ->whereNotNull('maintenancecompany_image')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        $ecommerceSharedData = EcommerceSharedDataService::get();
+        $ecommerceSharedData['pageTitle'] = 'جميع المنتجات';
+
+        return view('ecommerce.EcommerceAllProducts.EcommerceAllProductsserachforproductrow', compact('Products', 'AllEcommerceProducts', 'ecommerceSharedData', 'PartnerCompanies'));
+    }
+}
+About — EcommerceKnowAboutUs
+blade{{-- resources/views/ecommerce/EcommerceKnowAboutUs/EcommerceKnowAboutUs.blade.php --}}
+@php
+    $aboutData = \App\Models\AboutUs::first();
+    {{-- ← لو مفيش موديل AboutUs اعمل كومنت على السطر ده وبعتلي --}}
+    $team = \App\Models\Ourservice::where('ourservice_displaystatus', 1)->get();
+    {{-- ← نفس الكلام --}}
+@endphp
+
+@extends('layouts.app')
+@section('title', 'اعرف عنا — ' . ($ecommerceSharedData['branchName'] ?? ''))
+
+@section('content')
+
+<x-page-header title="معلومات عنا" :breadcrumbs="[
+    ['name' => 'الرئيسية', 'url' => route('home')],
+    ['name' => 'اعرف عنا',  'url' => route('EcommerceKnowAboutUs')],
+]" />
+
+<div class="container py-5">
+    <div class="row g-5">
+
+        {{-- من نحن --}}
+        <div class="col-lg-6">
+            <div class="about-card">
+                <h2 class="about-card__title">من نحن</h2>
+                <p class="about-card__text">
+                    {{ $aboutData?->whoweare ?? ($ecommerceSharedData['branch']->branch_name . ' — متجر إلكتروني متخصص في الإلكترونيات والإكسسوارات.') }}
+                </p>
+            </div>
+        </div>
+
+        {{-- رسالتنا --}}
+        <div class="col-lg-6">
+            <div class="about-card">
+                <h2 class="about-card__title">رسالتنا</h2>
+                <p class="about-card__text">
+                    {{ $aboutData?->ourmission ?? 'تقديم أفضل المنتجات بأعلى جودة وأفضل الأسعار.' }}
+                </p>
+            </div>
+        </div>
+
+        {{-- رؤيتنا --}}
+        <div class="col-lg-6">
+            <div class="about-card">
+                <h2 class="about-card__title">رؤيتنا</h2>
+                <p class="about-card__text">
+                    {{ $aboutData?->ourvision ?? 'أن نكون الخيار الأول للتسوق الإلكتروني في المنطقة.' }}
+                </p>
+            </div>
+        </div>
+
+        {{-- خدماتنا --}}
+        <div class="col-lg-6">
+            <div class="about-card">
+                <h2 class="about-card__title">خدماتنا</h2>
+                <p class="about-card__text">
+                    {{ $aboutData?->ourservices ?? 'بيع الإلكترونيات، صيانة الأجهزة، توفير الإكسسوارات.' }}
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    {{-- فريق العمل --}}
+    @if(isset($team) && $team->count())
+    <div class="mt-5">
+        <h2 class="section-title text-end mb-4">فريق شركة {{ $ecommerceSharedData['branchName'] ?? '' }}</h2>
+        <div class="row g-4 justify-content-center">
+            @foreach($team as $member)
+            <div class="col-6 col-md-4 col-lg-3 text-center">
+                <div class="team-card">
+                    <img src="{{ asset('images/ourservices/' . $member->ourservice_image) }}"
+                         alt="{{ $member->ourservice_name }}"
+                         class="team-card__img"
+                         width="120" height="120"
+                         loading="lazy">
+                    <div class="team-card__name">{{ $member->ourservice_name }}</div>
+                    @if($member->ourservice_jobtitle ?? null)
+                    <div class="team-card__title">{{ $member->ourservice_jobtitle }}</div>
+                    @endif
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+</div>
+@endsection
+Privacy Policy
+blade{{-- resources/views/ecommerce/PrivacyPolicy/PrivacyPolicy.blade.php --}}
+@extends('layouts.app')
+@section('title', 'سياسة الخصوصية — ' . ($ecommerceSharedData['branchName'] ?? ''))
+
+@section('content')
+
+<x-page-header title="سياسة الخصوصية" :breadcrumbs="[
+    ['name' => 'الرئيسية', 'url' => route('home')],
+    ['name' => 'سياسة الخصوصية', 'url' => route('PrivacyPolicy')],
+]" />
+
+<div class="container py-5">
+    <div class="policy-content">
+
+        <h2>جمع المعلومات</h2>
+        <p>نحن نجمع المعلومات التي تقدمها لنا مباشرة عند إنشاء حساب أو إتمام عملية الشراء، وتشمل: الاسم، رقم الهاتف، والعنوان.</p>
+
+        <h2>استخدام المعلومات</h2>
+        <p>نستخدم المعلومات التي نجمعها لمعالجة طلباتك، والتواصل معك بشأن طلباتك وخدماتنا.</p>
+
+        <h2>مشاركة المعلومات</h2>
+        <p>لا نبيع أو نشارك معلوماتك الشخصية مع أطراف ثالثة إلا في حالات يستلزمها تنفيذ طلبك.</p>
+
+        <h2>سياسة الاسترجاع</h2>
+        <p>نضمن حق الاسترجاع خلال 14 يوم من تاريخ الاستلام وفقاً لقانون حماية المستهلك المصري، شريطة أن يكون المنتج في حالته الأصلية.</p>
+
+        <h2>الأمان</h2>
+        <p>نستخدم تقنيات تشفير متقدمة لحماية بياناتك الشخصية وبيانات الدفع.</p>
+
+        <h2>التواصل معنا</h2>
+        <p>
+            لأي استفسارات تتعلق بسياسة الخصوصية:
+            <a href="{{ route('EcommerceContactUs') }}" class="text-primary">تواصل معنا</a>
+        </p>
+
+    </div>
+</div>
+@endsection
+Terms and Conditions
+blade{{-- resources/views/ecommerce/PrivacyPolicy/terms.blade.php --}}
+@extends('layouts.app')
+@section('title', 'الشروط والأحكام — ' . ($ecommerceSharedData['branchName'] ?? ''))
+
+@section('content')
+
+<x-page-header title="الشروط و الأحكام" :breadcrumbs="[
+    ['name' => 'الرئيسية', 'url' => route('home')],
+    ['name' => 'الشروط والأحكام', 'url' => route('TermsAndConditions')],
+]" />
+
+<div class="container py-5">
+    <div class="policy-content">
+
+        <h2>مقدمة</h2>
+        <p>باستخدام موقع {{ $ecommerceSharedData['branchName'] ?? '' }}، فأنت توافق على الشروط والأحكام التالية.</p>
+
+        <h2>التسجيل والحساب</h2>
+        <p>يجب أن تقدم معلومات صحيحة عند إنشاء حسابك. أنت مسؤول عن الحفاظ على سرية كلمة المرور.</p>
+
+        <h2>الطلبات والأسعار</h2>
+        <p>نحتفظ بالحق في تعديل الأسعار في أي وقت. الطلب المؤكد ملزم للطرفين بالسعر المتفق عليه وقت الطلب.</p>
+
+        <h2>الشحن والتسليم</h2>
+        <p>نسعى لتسليم طلباتك في أسرع وقت ممكن. مواعيد التسليم تقديرية وليست ملزمة.</p>
+
+        <h2>الإلغاء والاسترجاع</h2>
+        <p>يمكن إلغاء الطلب قبل شحنه. بعد الاستلام، يمكن الاسترجاع خلال 14 يوم وفق شروط محددة.</p>
+
+        <h2>التوافر والمسؤولية</h2>
+        <p>لا نضمن توافر جميع المنتجات في جميع الأوقات. في حالة عدم التوافر، سيتم التواصل معك فوراً.</p>
+
+    </div>
+</div>
+@endsection
+
+CSS مشترك للصفحات الستاتيك
+css/* في products.css أو app.css */
+
+/* ── About Cards ── */
+.about-card {
+    background: var(--white);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    height: 100%;
+    border-top: 3px solid var(--primary);
+}
+
+.about-card__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 1rem;
+}
+
+.about-card__text {
+    color: var(--text);
+    line-height: 1.8;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* ── Team Card ── */
+.team-card { text-align: center; }
+
+.team-card__img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary);
+    margin-bottom: .75rem;
+}
+
+.team-card__name {
+    font-weight: 600;
+    color: var(--heading);
+    font-size: .9rem;
+}
+
+.team-card__title {
+    font-size: .78rem;
+    color: var(--text);
+}
+
+/* ── Policy Content ── */
+.policy-content h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin-top: 2rem;
+    margin-bottom: .75rem;
+    padding-bottom: .4rem;
+    border-bottom: 2px solid var(--primary);
+    display: inline-block;
+}
+
+.policy-content p {
+    color: var(--text);
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    font-size: .9rem;
+}
+
+الـ Controllers للصفحات الستاتيك
+php// EcommerceKnowAboutUsController
+public function EcommerceKnowAboutUs()
+{
+    $ecommerceSharedData = EcommerceSharedDataService::get();
+    return view('ecommerce.EcommerceKnowAboutUs.EcommerceKnowAboutUs',
+        compact('ecommerceSharedData'));
+}
+
+// PrivacyPolicyController
+public function PrivacyPolicy()
+{
+    $ecommerceSharedData = EcommerceSharedDataService::get();
+    return view('ecommerce.PrivacyPolicy.PrivacyPolicy',
+        compact('ecommerceSharedData'));
+}
+
+public function TermsAndConditions()
+{
+    $ecommerceSharedData = EcommerceSharedDataService::get();
+    return view('ecommerce.PrivacyPolicy.terms',
+        compact('ecommerceSharedData'));
+}
+
+ملخص الأخطاء التي صلحناها
+الخطأالسببالحلColor filter مكرر 3 مراتcopy/pasteسيّبنا مرة واحدة$colorsStats = كل الـ productsثقيل على الـ DBاستبدلناه بـ distinct()->pluck()الفلاتر الثانية مش مربوطةstatic valuesربطناها بـ DB عن طريق الموديلات الموجودة

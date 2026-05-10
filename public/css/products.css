@@ -1,0 +1,180 @@
+/* public/css/products.css */
+
+/* ── Page Header ── */
+.page-header {
+  background: var(--bg-secondary);
+  padding-block: 1.75rem;
+  border-bottom: 1px solid var(--stroke);
+  margin-bottom: 0;
+}
+
+.page-header__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--heading);
+  margin-bottom: .4rem;
+}
+
+.breadcrumb-item a {
+  color: var(--primary);
+}
+
+.breadcrumb-item.active {
+  color: var(--text);
+}
+
+/* ── Filter Sidebar ── */
+.filter-card {
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.filter-card__header {
+  padding: .75rem 1rem;
+  font-weight: 600;
+  font-size: .9rem;
+  color: var(--heading);
+  background: var(--bg-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.filter-card__body {
+  padding: .75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.filter-count {
+  background: var(--bg-secondary);
+  border-radius: 99px;
+  font-size: .75rem;
+  padding: .1rem .5rem;
+  color: var(--text);
+}
+
+.price-range {
+  width: 100%;
+  accent-color: var(--primary);
+}
+
+.color-swatches {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform var(--transition);
+  outline: none;
+  border: 2px solid transparent;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch.active {
+  border-color: var(--primary);
+}
+
+/* ── Toolbar ── */
+.products-toolbar {
+  background: var(--white);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-md);
+  padding: .6rem 1rem;
+}
+
+.toolbar-sort {
+  min-width: 140px;
+  font-size: .9rem;
+}
+
+.products-count {
+  font-size: .9rem;
+}
+
+.view-toggle {
+  display: flex;
+  gap: .25rem;
+}
+
+.view-btn {
+  background: none;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  padding: .3rem .5rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.view-btn.active,
+.view-btn:hover {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+
+/* ── Products Grid Variants ── */
+/* List View */
+.products-grid--list {
+  grid-template-columns: 1fr !important;
+}
+
+.products-grid--list .product-card {
+  flex-direction: row;
+  align-items: center;
+}
+
+.products-grid--list .product-card__img-wrap {
+  width: 120px;
+  flex-shrink: 0;
+  aspect-ratio: 1;
+}
+
+/* Mobile Single Column */
+@media (max-width: 575px) {
+  .products-grid--single {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Pagination ── */
+.pagination-btn {
+  min-width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--heading);
+  font-size: .9rem;
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+  cursor: pointer;
+  padding-inline: .75rem;
+}
+
+.pagination-btn:hover:not(:disabled),
+.pagination-btn.active {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+
+.pagination-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}

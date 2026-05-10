@@ -1,0 +1,348 @@
+*,
+::before,
+::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    /* background: linear-gradient(270deg,rgb(92, 58, 3), #0f172a,rgb(53, 51, 23));
+    background-size: 600% 600%; */
+    /* animation: gradientMove 8s ease infinite; */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 100vh;
+}
+
+@keyframes gradientMove {
+    0% {
+        background-position: 0%;
+    }
+    50% {
+        background-position: 100%;
+    }
+    100% {
+        background-position: 0%;
+    }
+}
+
+/* Start main */
+main {
+    padding-top: 110px !important; /* navbar height because it's fixed position without height */
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+/* Start Hero */
+.hero {
+    height: 60vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+
+.hero h1 {
+    font-size: 48px;
+}
+
+.hero-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: #38bdf8;
+    color: black;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.hero-btn:hover {
+    transform: scale(1.1);
+}
+
+/* game cards */
+.card {
+    background: #0f172a;
+    color: white;
+    border: 1px solid #666;
+    border-top-right-radius: 55px;
+    border-top-left-radius: 10px;
+    background: none;
+    overflow: hidden;
+    transition: 0.3s;
+    text-align: center;
+}
+
+.card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 0 20px #38bdf8;
+}
+
+.card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.card-body {
+    padding: 10px;
+}
+
+/* Cards css */
+
+.grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+/* custom cards */
+.featured-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin: 60px 0;
+    align-items: center;
+}
+
+.featured-card.reverse {
+    direction: rtl;
+}
+
+.featured-card.reverse * {
+    direction: ltr;
+}
+
+.featured-image img {
+    width: 100%;
+    border-radius: 16px;
+    object-fit: cover;
+}
+
+.featured-content h2 {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.featured-content p {
+    color: #cbd5e1;
+    margin-bottom: 20px;
+}
+
+.btn {
+    padding: 10px 20px;
+    background: #38bdf8;
+    color: #000;
+    border-radius: 8px;
+}
+
+/* Skelton */
+
+.skeleton {
+    background: linear-gradient(90deg, #eee, #ddd, #eee);
+    animation: pulse 1.5s infinite;
+}
+
+/* resources/css/navbar.css */
+
+/* ── Top Bar ── */
+.top-bar {
+    width: 100%;
+    font-size: 0.85rem;
+    letter-spacing: 0.01em;
+}
+
+.top-bar__wrapper {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.top-bar__phone {
+    transition: opacity 0.2s;
+}
+.top-bar__phone:hover {
+    opacity: 0.8;
+}
+
+/* ── Main Navbar ── */
+.navbar {
+    min-height: 70px;
+}
+
+.nav-link {
+    position: relative;
+    padding-inline: 0.75rem;
+    color: var(--primary) !important;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+}
+
+/* Underline effect عند الـ hover */
+.nav-link::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: currentColor;
+    transition:
+        width 0.25s,
+        left 0.25s;
+}
+.nav-link:hover::after,
+.nav-link[aria-current="page"]::after {
+    width: 100%;
+    left: 0;
+}
+
+/* ── Dropdown ── */
+.dropdown-menu {
+    border-radius: 0.5rem;
+    min-width: 180px;
+    animation: fadeDown 0.2s ease;
+}
+
+@keyframes fadeDown {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-item {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    transition: background 0.15s;
+}
+.dropdown-item:hover {
+    background: #f5f5f5;
+}
+
+/* ── Cart Badge ── */
+.cart-badge {
+    font-size: 0.65rem;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Mobile ── */
+@media (max-width: 991px) {
+    .navbar-icons {
+        border-top: 1px solid #eee;
+        padding-top: 1rem;
+        justify-content: center;
+    }
+
+    .dropdown-menu {
+        border: none;
+        background: #f8f8f8;
+        border-radius: 0.5rem;
+        margin-top: 0.25rem;
+    }
+}
+
+.brands-bar {
+    padding-block: 1.5rem;
+    border-block: 1px solid var(--stroke);
+    background: var(--white);
+}
+
+.brands-scroller {
+    max-width: 1200px;
+    width: 100%;
+    display: flex;
+    overflow: hidden;
+    -webkit-mask: linear-gradient(
+        90deg,
+        transparent,
+        white 15%,
+        white 85%,
+        transparent
+    );
+    mask: linear-gradient(
+        90deg,
+        transparent,
+        white 15%,
+        white 85%,
+        transparent
+    );
+}
+
+.brands-scroller__inner {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    width: max-content;
+}
+
+/* بعد ما JS يضيف ready-- */
+.brands-scroller.is-ready .brands-scroller__inner {
+    animation: brandsScroll 10s linear infinite;
+    will-change: transform;
+}
+
+.brands-scroller.is-ready:hover .brands-scroller__inner {
+    animation-play-state: paused;
+}
+
+.brands-scroller__inner li {
+    flex-shrink: 0;
+    flex: 0 0 auto;
+
+    width: 300px;
+    min-width: 300px;
+    height: 200px;
+    background-color: lightblue;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.brands-scroller__inner img {
+    /* height: 32px;
+    width: auto; */
+    object-fit: contain;
+    filter: grayscale(100%);
+    opacity: 0.6;
+    transition:
+        filter 0.3s,
+        opacity 0.3s;
+}
+
+.brands-scroller__inner img:hover {
+    filter: none;
+    opacity: 1;
+}
+
+@keyframes brandsScroll {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .brands-scroller.is-ready .brands-scroller__inner {
+        animation: none;
+    }
+}

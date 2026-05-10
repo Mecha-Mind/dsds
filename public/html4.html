@@ -1,0 +1,715 @@
+صفحة التفاصيل الكاملة blade{{--
+resources/views/ecommerce/ProductDetails/ProductDetails.blade.php --}} @php
+$product = $Product?->product; $sellPrice = (float)($product?->product_sellprice
+?? 0); $offerPrice = (float)($product?->product_offerprice ?? 0); $hasOffer =
+$offerPrice > 0 && $offerPrice < $sellPrice; $discount = $hasOffer ?
+round((($sellPrice - $offerPrice) / $sellPrice) * 100) : 0; $stock =
+(int)($product?->{'232021'} ?? 0); {{-- ← لما ترجع الشغل: تأكد من اسم stock
+column --}} $mainImage = $product?->product_image ?? null; /* | الصور الإضافية —
+لما يتضافوا في الـ DB بدلوا أسماء الـ columns هنا | دلوقتي بنكرر الصورة الرئيسية
+كـ placeholder */ $extraImages = array_filter([ $product?->product_image2 ??
+null, $product?->product_image3 ?? null, $product?->product_image4 ?? null, ]);
+if (empty($extraImages) && $mainImage) { $extraImages = [$mainImage, $mainImage,
+$mainImage]; } $allThumbs = $mainImage ? array_values(array_merge([$mainImage],
+array_values($extraImages))) : []; $avgRatingDisplay = ($reviewsCount ?? 0) > 0
+? round($avgRating ?? 0) : 4; $hasRealReviews = ($reviewsCount ?? 0) > 0;
+@endphp @extends('layouts.app') @section('title', ($product?->product_name ??
+'تفاصيل المنتج') . ' — ' . ($ecommerceSharedData['branchName'] ?? ''))
+@section('description', $product?->product_description ?
+Str::limit(strip_tags($product->product_description), 160) : '')
+@section('og_type', 'product') @if($mainImage) @section('og_image',
+asset('images/productsimages/' . $mainImage)) @endif @section('content')
+
+<div class="pd-page">
+    <div class="container py-4">
+        {{-- ══════════════════════════════════ TOP SECTION
+        ══════════════════════════════════ --}}
+        <div class="row g-4">
+            {{-- ── Gallery ── --}}
+            <div class="col-lg-6">
+                <div class="pd-gallery-wrap">
+                    {{-- الصور الصغيرة — عمود على اليمين (ديسكتوب) / صف تحت
+                    (موبايل) --}}
+                    <div
+                        class="pd-thumbs"
+                        id="thumbsTrack"
+                        role="list"
+                        aria-label="صور المنتج"
+                    >
+                        @foreach($allThumbs as $i => $img)
+                        <button
+                            class="pd-thumb {{ $i === 0 ? 'is-active' : '' }}"
+                            type="button"
+                            role="listitem"
+                            aria-label="صورة {{ $i + 1 }}"
+                            aria-pressed="{{ $i === 0 ? 'true' : 'false' }}"
+                            onclick="switchImg(this, '{{ asset('images/productsimages/' . $img) }}')"
+                        >
+                            <img
+                                src="{{ asset('images/productsimages/' . $img) }}"
+                                alt="{{ $product?->product_name ?? '' }} صورة {{ $i + 1 }}"
+                                width="64"
+                                height="64"
+                                loading="{{ $i === 0 ? 'eager' : 'lazy' }}"
+                            />
+                        </button>
+                        @endforeach
+                    </div>
+
+                    {{-- الصورة الرئيسية --}}
+                    <div class="pd-main-img-wrap">
+                        @if($hasOffer)
+                        <span
+                            class="pd-offer-badge"
+                            aria-label="خصم {{ $discount }}%"
+                        >
+                            {{ $discount }}%
+                        </span>
+                        @endif
+
+                        <img
+                            id="mainImg"
+                            src="{{ $mainImage ? asset('images/productsimages/' . $mainImage) : asset('images/placeholder.png') }}"
+                            alt="{{ $product?->product_name ?? 'صورة المنتج' }}"
+                            class="pd-main-img"
+                            width="480"
+                            height="480"
+                            loading="eager"
+                            fetchpriority="high"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {{-- ── Info ── --}}
+            <div class="col-lg-6">
+                {{-- Rating --}}
+                <div
+                    class="pd-rating-row"
+                    itemscope
+                    itemtype="https://schema.org/AggregateRating"
+                >
+                    @for($i = 1; $i <= 5; $i++)
+                    <i
+                        class="bi bi-star-fill {{ $i <= $avgRatingDisplay ? 'star-on' : 'star-off' }}"
+                        aria-hidden="true"
+                    ></i>
+                    @endfor @if($hasRealReviews)
+                    <span class="pd-rating-count" itemprop="ratingCount">
+                        (الآراء {{ $reviewsCount }})
+                    </span>
+                    <meta
+                        itemprop="ratingValue"
+                        content="{{ number_format($avgRating ?? 0, 1) }}"
+                    />
+                    @else
+                    <span class="pd-rating-count pd-rating-count--placeholder">
+                        (لم يتم التقييم بعد)
+                    </span>
+                    @endif
+                </div>
+
+                {{-- Name --}}
+                <h1 class="pd-title" itemprop="name">
+                    {{ $product?->product_name ?? '' }}
+                </h1>
+
+                {{-- Description --}} @if($product?->product_description)
+                <p class="pd-short-desc">
+                    {{ Str::limit($product->product_description, 200) }}
+                </p>
+                @endif {{-- Price --}}
+                <div
+                    class="pd-price-block"
+                    itemprop="offers"
+                    itemscope
+                    itemtype="https://schema.org/Offer"
+                >
+                    @if($hasOffer)
+                    <span class="pd-price pd-price--offer"
+                        >{{ number_format($offerPrice) }} جنية</span
+                    >
+                    <span class="pd-price pd-price--old"
+                        >{{ number_format($sellPrice) }}</span
+                    >
+                    <span class="pd-discount-chip">خصم {{ $discount }}%</span>
+                    @else
+                    <span class="pd-price"
+                        >{{ number_format($sellPrice) }} جنية</span
+                    >
+                    @endif
+                    <meta
+                        itemprop="price"
+                        content="{{ $hasOffer ? $offerPrice : $sellPrice }}"
+                    />
+                    <meta itemprop="priceCurrency" content="EGP" />
+                </div>
+
+                {{-- Stock --}}
+                <div class="pd-stock-row">
+                    المنتج: @if($stock > 0)
+                    <span class="pd-stock-chip pd-stock-chip--in">
+                        <i
+                            class="bi bi-check-circle-fill"
+                            aria-hidden="true"
+                        ></i>
+                        متوفر
+                    </span>
+                    (عدد {{ $stock }}) @else
+                    <span class="pd-stock-chip pd-stock-chip--out">
+                        <i class="bi bi-x-circle-fill" aria-hidden="true"></i>
+                        غير متوفر
+                    </span>
+                    @endif
+                </div>
+
+                {{-- Actions --}}
+                <div class="pd-actions">
+                    {{-- Wishlist --}}
+                    <button
+                        type="button"
+                        class="pd-wish-btn"
+                        aria-label="أضف للمفضلة"
+                    >
+                        <i class="bi bi-heart" aria-hidden="true"></i>
+                    </button>
+
+                    {{-- Cart --}} @if(session('customer_phone'))
+                    <form
+                        method="POST"
+                        action="{{ route('CustomerRequestIncreseQuantityPost', $Product?->ecommerceproduct_id) }}"
+                        class="pd-cart-form"
+                    >
+                        @csrf
+                        <input
+                            type="hidden"
+                            name="quantity"
+                            id="hiddenQty"
+                            value="1"
+                        />
+                        <button type="submit" class="btn hero__btn pd-cart-btn">
+                            <i class="bi bi-basket" aria-hidden="true"></i>
+                            أضف الى السلة
+                        </button>
+                    </form>
+                    @else
+                    <a
+                        href="{{ route('CustomerLogin') }}"
+                        class="btn hero__btn pd-cart-btn"
+                    >
+                        <i class="bi bi-basket" aria-hidden="true"></i>
+                        أضف الى السلة
+                    </a>
+                    @endif {{-- Qty --}}
+                    <div class="pd-qty" role="group" aria-label="الكمية">
+                        <button
+                            type="button"
+                            class="pd-qty-btn"
+                            id="qtyMinus"
+                            aria-label="تقليل الكمية"
+                        >
+                            <i class="bi bi-dash" aria-hidden="true"></i>
+                        </button>
+                        <output
+                            id="qtyInput"
+                            class="pd-qty-val"
+                            aria-live="polite"
+                            >1</output
+                        >
+                        <button
+                            type="button"
+                            class="pd-qty-btn"
+                            id="qtyPlus"
+                            aria-label="زيادة الكمية"
+                        >
+                            <i class="bi bi-plus" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Payment --}}
+                <div class="pd-payment">
+                    <img
+                        src="{{ asset('/images/socialmediacontacts/backingmobile.webp') }}"
+                        alt="وسائل الدفع: فيزا، ماستركارد، باي بال، ديسكفر، سترايب"
+                        loading="lazy"
+                        width="300"
+                        height="36"
+                    />
+                </div>
+
+                {{-- Related Products --}} @if(isset($RelatedProducts) &&
+                $RelatedProducts->count())
+                <div class="pd-related">
+                    <h2 class="pd-related-title">منتجات ممكن تحتاجها</h2>
+                    <div class="pd-related-list">
+                        @foreach($RelatedProducts as $rel)
+                        <a
+                            href="{{ route('ProductDetails', $rel->ecommerceproduct_id) }}"
+                            class="pd-related-card"
+                            aria-label="{{ $rel->product?->product_name ?? '' }}"
+                        >
+                            <img
+                                src="{{ asset('images/productsimages/' . ($rel->product?->product_image ?? 'placeholder.png')) }}"
+                                alt="{{ $rel->product?->product_name ?? '' }}"
+                                width="60"
+                                height="60"
+                                loading="lazy"
+                            />
+                            <span class="pd-related-card__name">
+                                {{ Str::limit($rel->product?->product_name ??
+                                '', 20) }}
+                            </span>
+                            <span class="pd-related-card__price">
+                                <i
+                                    class="bi bi-basket-fill"
+                                    aria-hidden="true"
+                                ></i>
+                                {{
+                                number_format($rel->product?->product_sellprice
+                                ?? 0) }} ج.م
+                            </span>
+                        </a>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
+
+        {{-- ══════════════════════════════════ SPECS ACCORDION
+        ══════════════════════════════════ --}}
+        <div class="pd-section mt-4">
+            {{-- Specs --}}
+            <div class="pd-acc" id="specsAccordion">
+                <button
+                    class="pd-acc__btn"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#specsBody"
+                    aria-expanded="true"
+                    aria-controls="specsBody"
+                >
+                    <i
+                        class="bi bi-chevron-up pd-acc__chevron"
+                        aria-hidden="true"
+                    ></i>
+                    <span>مواصفات المنتج</span>
+                </button>
+                <div class="collapse show" id="specsBody">
+                    <div class="pd-acc__body">
+                        @if($product?->product_description)
+                        <table
+                            class="pd-specs-tbl"
+                            role="table"
+                            aria-label="مواصفات المنتج"
+                        >
+                            <tbody>
+                                @foreach(explode("\n",
+                                $product->product_description) as $line) @php
+                                $parts = explode(':', $line, 2); @endphp
+                                @if(count($parts) === 2 && trim($parts[0]) &&
+                                trim($parts[1]))
+                                <tr>
+                                    <td class="pd-specs-tbl__label">
+                                        {{ trim($parts[0]) }}
+                                    </td>
+                                    <td class="pd-specs-tbl__val">
+                                        {{ trim($parts[1]) }}
+                                    </td>
+                                </tr>
+                                @endif @endforeach
+                            </tbody>
+                        </table>
+                        @else
+                        <p class="text-muted mb-0">
+                            لا توجد مواصفات متاحة حالياً
+                        </p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- Reviews --}}
+            <div class="pd-acc mt-3" id="reviewsAccordion">
+                <button
+                    class="pd-acc__btn"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#reviewsBody"
+                    aria-expanded="false"
+                    aria-controls="reviewsBody"
+                >
+                    <i
+                        class="bi bi-chevron-down pd-acc__chevron"
+                        aria-hidden="true"
+                    ></i>
+                    <span>
+                        الأراء @if($hasRealReviews)
+                        <span class="pd-acc__count">{{ $reviewsCount }}</span>
+                        @endif
+                    </span>
+                </button>
+                <div class="collapse" id="reviewsBody">
+                    <div class="pd-acc__body">
+                        {{-- Summary --}} @if($hasRealReviews)
+                        <div class="pd-reviews-summary">
+                            <div class="pd-reviews-summary__score">
+                                {{ number_format($avgRating ?? 0, 1) }}
+                            </div>
+                            <div>
+                                <div class="pd-rating-row mb-1">
+                                    @for($i = 1; $i <= 5; $i++)
+                                    <i
+                                        class="bi bi-star-fill {{ $i <= round($avgRating ?? 0) ? 'star-on' : 'star-off' }}"
+                                        aria-hidden="true"
+                                    ></i>
+                                    @endfor
+                                </div>
+                                <small class="text-muted"
+                                    >تقيمات و أراء العملاء</small
+                                >
+                            </div>
+                        </div>
+                        @endif {{-- Reviews List --}} @forelse($Reviews ?? [] as
+                        $review)
+                        <article class="pd-review">
+                            <header class="pd-review__header">
+                                <div class="pd-review__meta">
+                                    <span class="pd-review__author"
+                                        >{{ $review->customer?->customer_name ??
+                                        'مجهول' }}</span
+                                    >
+                                    <span class="pd-review__label text-muted"
+                                        >بواسطة</span
+                                    >
+                                </div>
+                                <div class="pd-rating-row pd-rating-row--sm">
+                                    @php $r =
+                                    $review->customerproductcomment_rating;
+                                    @endphp @for($i = 1; $i <= 5; $i++)
+                                    <i
+                                        class="bi bi-star-fill {{ $i <= $r ? 'star-on' : 'star-off' }}"
+                                        aria-hidden="true"
+                                    ></i>
+                                    @endfor
+                                    <span class="pd-review__score"
+                                        >{{ $r }}/5</span
+                                    >
+                                </div>
+                                <time
+                                    class="pd-review__date"
+                                    datetime="{{ $review->created_at?->toISOString() }}"
+                                >
+                                    {{ $review->created_at?->format('d نوفمبر
+                                    Y') }}
+                                </time>
+                            </header>
+                            <p class="pd-review__text">
+                                {{ $review->customerproductcomment_comment }}
+                            </p>
+                        </article>
+                        @empty
+                        <p class="text-muted text-center py-3">
+                            لا توجد آراء بعد. كن أول من يقيّم!
+                        </p>
+                        @endforelse {{-- Add Review --}}
+                        <div class="pd-write-review">
+                            <p class="pd-write-review__label">أكتب رأيك</p>
+
+                            {{-- Star Rating Input --}}
+                            <div
+                                class="pd-star-input mb-3"
+                                role="radiogroup"
+                                aria-label="تقييمك"
+                            >
+                                @for($i = 5; $i >= 1; $i--)
+                                <input
+                                    type="radio"
+                                    name="rating"
+                                    id="star{{ $i }}"
+                                    value="{{ $i }}"
+                                    class="pd-star-input__radio"
+                                    form="reviewForm"
+                                />
+                                <label
+                                    for="star{{ $i }}"
+                                    class="pd-star-input__label"
+                                    aria-label="{{ $i }} نجوم"
+                                >
+                                    <i
+                                        class="bi bi-star-fill"
+                                        aria-hidden="true"
+                                    ></i>
+                                </label>
+                                @endfor
+                            </div>
+
+                            @if(session('customer_phone'))
+                            <form
+                                method="POST"
+                                id="reviewForm"
+                                action="{{ route('CustomerAddProductCommentPost', $Product?->ecommerceproduct_id) }}"
+                            >
+                                @csrf
+                                <textarea
+                                    name="comment"
+                                    class="form-control mb-3"
+                                    rows="3"
+                                    placeholder="أكتب هنا"
+                                    maxlength="1000"
+                                    aria-label="تعليقك"
+                                ></textarea>
+                                <button type="submit" class="btn hero__btn">
+                                    إرسال
+                                </button>
+                            </form>
+                            @else
+                            <a
+                                href="{{ route('CustomerLogin') }}"
+                                class="btn btn-outline-secondary btn-sm"
+                            >
+                                سجل دخول لإضافة رأيك
+                            </a>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- ══════════════════════════════════ SIMILAR PRODUCTS
+        ══════════════════════════════════ --}} @if(isset($SimilarProducts) &&
+        $SimilarProducts->count())
+        <div class="mt-5">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="section-title mb-0">منتجات بديلة</h2>
+                <a
+                    href="{{ route('EcommerceAllProducts') }}"
+                    class="section-more-link"
+                >
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                    عرض المزيد
+                </a>
+            </div>
+            <div class="products-grid">
+                @foreach($SimilarProducts as $ep)
+                <x-product-card
+                    :id="$ep->ecommerceproduct_id"
+                    :name="$ep->product?->product_name ?? ''"
+                    :price="$ep->product?->product_sellprice ?? 0"
+                    :offer-price="$ep->product?->product_offerprice"
+                    :image="$ep->product?->product_image ?? ''"
+                    route="ProductDetails"
+                    :has-offer="($ep->product?->product_offerprice ?? 0) > 0
+                    && $ep->product?->product_offerprice < $ep->product?->product_sellprice"
+                />
+                @endforeach
+            </div>
+        </div>
+        @endif
+    </div>
+</div>
+
+@endsection @push('scripts')
+<script>
+    (function () {
+        "use strict";
+
+        // ── Gallery ──
+        function switchImg(btn, src) {
+            const main = document.getElementById("mainImg");
+            if (main) {
+                main.src = src;
+            }
+            document.querySelectorAll(".pd-thumb").forEach((b) => {
+                b.classList.remove("is-active");
+                b.setAttribute("aria-pressed", "false");
+            });
+            btn.classList.add("is-active");
+            btn.setAttribute("aria-pressed", "true");
+        }
+        window.switchImg = switchImg;
+
+        // ── Qty ──
+        const qtyDisplay = document.getElementById("qtyInput");
+        const hiddenQty = document.getElementById("hiddenQty");
+        let qty = 1;
+        const maxQty = parseInt("{{ $stock > 0 ? $stock : 99 }}") || 99;
+
+        function updateQty(val) {
+            qty = Math.max(1, Math.min(val, maxQty));
+            if (qtyDisplay) qtyDisplay.textContent = qty;
+            if (hiddenQty) hiddenQty.value = qty;
+        }
+
+        document
+            .getElementById("qtyMinus")
+            ?.addEventListener("click", () => updateQty(qty - 1));
+        document
+            .getElementById("qtyPlus")
+            ?.addEventListener("click", () => updateQty(qty + 1));
+
+        // ── Accordion Chevron ──
+        document
+            .querySelectorAll('[data-bs-toggle="collapse"]')
+            .forEach((btn) => {
+                const target = document.querySelector(
+                    btn.getAttribute("data-bs-target"),
+                );
+                const chevron = btn.querySelector(".pd-acc__chevron");
+                if (!target || !chevron) return;
+
+                target.addEventListener("show.bs.collapse", () => {
+                    chevron.classList.replace(
+                        "bi-chevron-down",
+                        "bi-chevron-up",
+                    );
+                    btn.setAttribute("aria-expanded", "true");
+                });
+                target.addEventListener("hide.bs.collapse", () => {
+                    chevron.classList.replace(
+                        "bi-chevron-up",
+                        "bi-chevron-down",
+                    );
+                    btn.setAttribute("aria-expanded", "false");
+                });
+            });
+    })();
+</script>
+@endpush CSS الكامل css/* resources/css/page-details.css */ /*
+══════════════════════════════════ Gallery ══════════════════════════════════ */
+/* | ديسكتوب: صف أفقي — الـ thumbs على اليمين، الصورة على اليسار | موبايل: عمود
+— الصورة فوق، الـ thumbs تحت */ .pd-gallery-wrap { display: flex;
+flex-direction: row-reverse; /* thumbs على اليمين في RTL */ gap: 0.75rem;
+align-items: flex-start; } /* ── Thumbnails ── */ .pd-thumbs { display: flex;
+flex-direction: column; gap: 0.5rem; flex-shrink: 0; } .pd-thumb { width: 64px;
+height: 64px; border: 2px solid var(--stroke); border-radius: var(--radius-sm);
+overflow: hidden; padding: 0; background: var(--white); cursor: pointer;
+transition: border-color 0.2s; flex-shrink: 0; } .pd-thumb img { width: 100%;
+height: 100%; object-fit: cover; display: block; } .pd-thumb.is-active,
+.pd-thumb:hover { border-color: var(--primary); } /* ── Main Image ── */
+.pd-main-img-wrap { position: relative; flex: 1; border: 1px solid
+var(--stroke); border-radius: var(--radius-md); overflow: hidden; background:
+var(--white); aspect-ratio: 1; display: flex; align-items: center;
+justify-content: center; } .pd-main-img { width: 100%; height: 100%; object-fit:
+contain; transition: transform 0.35s ease; } .pd-main-img-wrap:hover
+.pd-main-img { transform: scale(1.04); } .pd-offer-badge { position: absolute;
+top: 1rem; left: 1rem; /* RTL — في الزاوية العلوية اليسرى */ background:
+var(--red); color: var(--white); font-size: 0.8rem; font-weight: 700; width:
+44px; height: 44px; border-radius: 50%; display: flex; align-items: center;
+justify-content: center; z-index: 2; } /* موبايل */ @media (max-width: 767px) {
+.pd-gallery-wrap { flex-direction: column; /* الصورة فوق */ } .pd-thumbs {
+flex-direction: row; /* صف أفقي تحت */ overflow-x: auto; width: 100%;
+padding-bottom: 0.25rem; scrollbar-width: none; } .pd-thumbs::-webkit-scrollbar
+{ display: none; } } /* ══════════════════════════════════ Info Section
+══════════════════════════════════ */ /* Rating */ .pd-rating-row { display:
+flex; align-items: center; gap: 0.2rem; font-size: 1rem; margin-bottom: 0.5rem;
+} .pd-rating-row--sm { font-size: 0.85rem; } .star-on { color: #f59e0b; }
+.star-off { color: #d1d5db; } .pd-rating-count { font-size: 0.82rem; color:
+var(--primary); font-weight: 600; margin-inline-start: 0.35rem; }
+.pd-rating-count--placeholder { color: var(--text); font-weight: 400; opacity:
+0.7; } /* Title */ .pd-title { font-size: clamp(1rem, 2.5vw, 1.4rem);
+font-weight: 700; color: var(--heading); margin-bottom: 0.5rem; line-height:
+1.4; } /* Description */ .pd-short-desc { font-size: 0.88rem; color:
+var(--text); line-height: 1.7; margin-bottom: 1rem; } /* Price */
+.pd-price-block { display: flex; align-items: center; gap: 0.6rem; flex-wrap:
+wrap; margin-bottom: 0.75rem; } .pd-price { font-size: 1.4rem; font-weight: 800;
+color: var(--heading); } .pd-price--offer { color: #b91c1c; } .pd-price--old {
+font-size: 1rem; font-weight: 400; color: var(--text); text-decoration:
+line-through; } .pd-discount-chip { background: #fef2f2; color: var(--red);
+font-size: 0.78rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius:
+99px; border: 1px solid #fecaca; } /* Stock */ .pd-stock-row { display: flex;
+align-items: center; gap: 0.5rem; font-size: 0.88rem; color: var(--text);
+margin-bottom: 1rem; } .pd-stock-chip { display: inline-flex; align-items:
+center; gap: 0.3rem; font-size: 0.82rem; font-weight: 600; padding: 0.2rem
+0.6rem; border-radius: 99px; } .pd-stock-chip--in { background: #f0fdf4; color:
+#16a34a; border: 1px solid #bbf7d0; } .pd-stock-chip--out { background: #fef2f2;
+color: var(--red); border: 1px solid #fecaca; } /* ── Actions ── */ .pd-actions
+{ display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;
+flex-direction: row-reverse; /* Wishlist على اليسار في RTL */ } .pd-cart-form {
+flex: 1; } .pd-cart-btn { width: 100%; display: flex; align-items: center;
+justify-content: center; gap: 0.4rem; } .pd-wish-btn { width: 44px; height:
+44px; min-width: 44px; display: flex; align-items: center; justify-content:
+center; border: 1px solid var(--stroke); border-radius: var(--radius-md); color:
+var(--text); background: none; cursor: pointer; transition: color 0.2s,
+border-color 0.2s; font-size: 1.1rem; } .pd-wish-btn:hover { color: var(--red);
+border-color: var(--red); } /* Qty */ .pd-qty { display: flex; align-items:
+center; border: 1px solid var(--stroke); border-radius: var(--radius-md);
+overflow: hidden; flex-shrink: 0; height: 44px; } .pd-qty-btn { background:
+var(--bg-secondary); border: none; width: 36px; height: 100%; display: flex;
+align-items: center; justify-content: center; cursor: pointer; color:
+var(--heading); font-size: 1rem; transition: background 0.2s, color 0.2s; }
+.pd-qty-btn:hover { background: var(--primary); color: var(--white); }
+.pd-qty-val { min-width: 42px; text-align: center; font-weight: 700; font-size:
+1rem; color: var(--heading); display: flex; align-items: center;
+justify-content: center; } /* Payment */ .pd-payment { padding-block: 0.75rem;
+border-top: 1px solid var(--stroke); border-bottom: 1px solid var(--stroke);
+margin-bottom: 1rem; } .pd-payment img { max-height: 32px; width: auto; } /* ──
+Related Products ── */ .pd-related { margin-top: 1rem; } .pd-related-title {
+font-size: 0.85rem; font-weight: 700; color: var(--heading); margin-bottom:
+0.75rem; } .pd-related-list { display: flex; gap: 0.5rem; overflow-x: auto;
+padding-bottom: 0.25rem; scrollbar-width: none; }
+.pd-related-list::-webkit-scrollbar { display: none; } .pd-related-card {
+flex-shrink: 0; width: 90px; display: flex; flex-direction: column; align-items:
+center; gap: 0.35rem; padding: 0.5rem; border-radius: var(--radius-sm); border:
+1px solid var(--stroke); background: var(--white); text-decoration: none;
+transition: border-color 0.2s, box-shadow 0.2s; text-align: center; }
+.pd-related-card:hover { border-color: var(--primary); box-shadow:
+var(--shadow-sm); } .pd-related-card img { width: 60px; height: 60px;
+object-fit: contain; border-radius: var(--radius-sm); } .pd-related-card__name {
+font-size: 0.68rem; color: var(--heading); font-weight: 500; display:
+-webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow:
+hidden; line-height: 1.3; } .pd-related-card__price { font-size: 0.68rem; color:
+var(--primary); font-weight: 700; display: flex; align-items: center; gap:
+0.2rem; } /* ══════════════════════════════════ Accordion
+══════════════════════════════════ */ .pd-section { max-width: 900px; } .pd-acc
+{ border: 1px solid var(--stroke); border-radius: var(--radius-md); overflow:
+hidden; } .pd-acc__btn { width: 100%; display: flex; justify-content:
+space-between; align-items: center; padding: 0.875rem 1.25rem; background:
+var(--white); border: none; font-size: 0.95rem; font-weight: 600; color:
+var(--heading); cursor: pointer; text-align: right; transition: background 0.2s;
+gap: 0.5rem; } .pd-acc__btn > span { flex: 1; display: flex; align-items:
+center; gap: 0.5rem; } .pd-acc__chevron { transition: transform 0.25s ease;
+flex-shrink: 0; } .pd-acc__count { display: inline-flex; align-items: center;
+justify-content: center; width: 22px; height: 22px; border-radius: 50%;
+background: var(--primary); color: var(--white); font-size: 0.72rem;
+font-weight: 700; } .pd-acc__body { padding: 1.25rem; } /* ── Specs Table ── */
+.pd-specs-tbl { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.pd-specs-tbl tr { border-bottom: 1px solid var(--stroke); } .pd-specs-tbl
+tr:last-child { border-bottom: none; } .pd-specs-tbl__label { padding: 0.7rem
+1rem; font-weight: 600; color: var(--text); width: 45%; text-align: right; }
+.pd-specs-tbl__val { padding: 0.7rem 1rem; color: var(--heading); font-weight:
+500; text-align: right; } /* ── Reviews ── */ .pd-reviews-summary { display:
+flex; align-items: center; gap: 1rem; padding: 1rem; background:
+var(--bg-secondary); border-radius: var(--radius-md); margin-bottom: 1.25rem; }
+.pd-reviews-summary__score { font-size: 2.5rem; font-weight: 800; color:
+var(--heading); line-height: 1; } .pd-review { padding-block: 1rem;
+border-bottom: 1px solid var(--stroke); } .pd-review:last-of-type {
+border-bottom: none; } .pd-review__header { display: flex; align-items: center;
+gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; } .pd-review__meta {
+display: flex; flex-direction: row-reverse; align-items: center; gap: 0.3rem; }
+.pd-review__author { font-weight: 600; font-size: 0.9rem; color: var(--heading);
+} .pd-review__label { font-size: 0.78rem; } .pd-review__score { font-size:
+0.78rem; color: var(--text); margin-inline-start: 0.35rem; } .pd-review__date {
+font-size: 0.78rem; color: var(--text); opacity: 0.7; margin-inline-start: auto;
+} .pd-review__text { font-size: 0.88rem; color: var(--heading); line-height:
+1.7; margin: 0; font-weight: 500; } /* ── Write Review ── */ .pd-write-review {
+margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--stroke); }
+.pd-write-review__label { font-size: 0.9rem; font-weight: 600; color:
+var(--heading); margin-bottom: 0.75rem; } /* Star Input */ .pd-star-input {
+display: flex; flex-direction: row-reverse; justify-content: flex-end; gap:
+0.25rem; margin-bottom: 1rem; } .pd-star-input__radio { display: none; }
+.pd-star-input__label { font-size: 1.4rem; color: #d1d5db; cursor: pointer;
+transition: color 0.15s; } .pd-star-input__radio:checked ~
+.pd-star-input__label, .pd-star-input__label:hover, .pd-star-input__label:hover
+~ .pd-star-input__label { color: #f59e0b; } /* ── Responsive ── */ @media
+(max-width: 767px) { .pd-title { font-size: 1.1rem; } .pd-price { font-size:
+1.1rem; } .pd-actions { flex-wrap: wrap; } .pd-cart-form { order: -1; flex: 0 0
+100%; } .pd-specs-tbl__label, .pd-specs-tbl__val { padding: 0.5rem 0.75rem;
+font-size: 0.82rem; } } اللي هتغيره لما ترجع الشغل في الـ DB لما يتضافوا الصور:
+php// في @php في أعلى الصفحة — غيّر الأسماء دي $extraImages = array_filter([
+$product?->product_image2 ?? null, // ← اسم الـ column الحقيقي
+$product?->product_image3 ?? null, $product?->product_image4 ?? null, ]); في الـ
+Controller — stock column: php$stock = (int)($product?->{'232021'} ?? 0); // ←
+لو اسم الـ column اتغير غيّره هنا

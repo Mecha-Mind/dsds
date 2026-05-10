@@ -1,0 +1,2892 @@
+@props([
+    'id'         => 0,
+    'name'       => '',
+    'price'      => 0,
+    'offerPrice' => null,
+    'image'      => '',
+    'route'      => 'ProductDetails',
+    'hasOffer'   => false,
+])
+
+@php
+    /*
+     | نحسب الخصم هنا في الـ component بدل ما نحسبه في الـ controller
+     | عشان نضمن إن الحساب صح في كل مكان
+    */
+    $showOffer   = $hasOffer && $offerPrice && $offerPrice > 0 && $offerPrice < $price;
+    $discount    = $showOffer ? round((($price - $offerPrice) / $price) * 100) : 0;
+    $displayPrice= $showOffer ? $offerPrice : $price;
+@endphp
+
+<article class="product-card">
+
+    {{-- Badge الخصم — بيظهر بس لو في خصم حقيقي --}}
+    @if($showOffer && $discount > 0)
+    <span class="product-card__badge" aria-label="خصم {{ $discount }}%">
+        {{ $discount }}%
+    </span>
+    @endif
+
+    {{-- الصورة --}}
+    <a href="{{ route($route, $id) }}"
+       class="product-card__img-wrap"
+       aria-label="{{ $name }}">
+        @if($image)
+        <img src="{{ asset('images/productsimages/' . $image) }}"
+             alt="{{ $name }}"
+             class="product-card__img"
+             loading="lazy"
+             decoding="async">
+        @else
+        <div class="product-card__no-img" aria-hidden="true">
+            <i class="bi bi-image"></i>
+        </div>
+        @endif
+    </a>
+
+    {{-- البيانات --}}
+    <div class="product-card__body">
+        <h3 class="product-card__name">
+            <a href="{{ route($route, $id) }}">{{ $name }}</a>
+        </h3>
+
+        <div class="product-card__prices">
+            {{-- السعر الحالي --}}
+            <span class="product-card__price {{ $showOffer ? 'product-card__price--offer' : '' }}">
+                {{ number_format($displayPrice) }} ج.م
+            </span>
+            {{-- السعر القديم لو في خصم --}}
+            @if($showOffer)
+            <span class="product-card__old-price">
+                {{ number_format($price) }}
+            </span>
+            @endif
+        </div>
+
+        <div class="product-card__actions">
+            <a href="{{ route($route, $id) }}"
+               class="btn product-card__add-btn">
+                <i class="bi bi-bag" aria-hidden="true"></i>
+                أضف إلى السلة
+            </a>
+            <button class="btn product-card__wish-btn"
+                    type="button"
+                    aria-label="أضف للمفضلة">
+                <i class="bi bi-heart" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+
+</article>
+
+####################################################
+// grid partial
+@forelse($Productswithoffersanddiscounts as $ep)
+    <x-product-card 
+        :id = "$ep->ecommerceproduct_id"
+        :name = "$ep->product?->product_name ?? "
+        :price = "$ep->product?->product_offerprice ?? ($ep->product?->product_sellprice ?? 0)"
+        :offer_price = "$ep->product?->product_sellprice ?? null"
+        :image = "$ep->product?->product_image ?? "
+        :route = "ProductDetails"
+        :has_offer = "true "/>
+@empty
+    <div class="col-span-full text-center py-5">
+        <i class="bi bi-search" style="font-size: 3rem; color: var(--text); opacity:.4"></i>
+        <p class="mt-3 text-muted">لا توجد منتجات تطابق البحث</p>
+    </div>
+@endforelse
+#########################################################
+all
+@php
+    $Page_title = $ecommerceSharedData['branch']->branch_name . ' - جميع المنتجات';
+    $description =
+        'تصفح جميع المنتجات المتوفرة في فرع ' .
+        $ecommerceSharedData['branch']->branch_name .
+        ' بأسعار مميزة وجودة عالية.';
+    $keywords = 'منتجات, ' . $ecommerceSharedData['branch']->branch_name . ', تسوق, عروض, أسعار, منتجات أصلية';
+    $og_title = $ecommerceSharedData['branch']->branch_name . ' - جميع المنتجات';
+    $og_description =
+        'اكتشف أفضل المنتجات والعروض في فرع ' .
+        $ecommerceSharedData['branch']->branch_name .
+        '، جودة وأسعار تنافسية بانتظارك!';
+    $og_image = url('/images/brancheslogo/' . $ecommerceSharedData['branch']->branch_image);
+    $og_type = 'website';
+
+@endphp
+
+@extends('layouts.app')
+
+
+@section('title', $Page_title)
+@section('description', $description)
+
+@section('title', 'المنتجات — ' . ($ecommerceSharedData['branchName'] ?? ''))
+
+@section('content')
+
+    {{-- Page Header --}}
+    <x-page-header title="المنتجات" :breadcrumbs="[
+        ['name' => 'الرئيسية', 'url' => route('home')],
+        ['name' => 'المنتجات', 'url' => route('EcommerceAllProducts')],
+    ]" />
+
+
+    {{-- Search Result Indicator --}}
+    @if (request()->filled('search'))
+        <div class="search-indicator container mt-3">
+            <div class="search-indicator__wrap">
+                <span class="search-indicator__text">
+                    <i class="bi bi-search me-1"></i>
+                    نتائج البحث عن:
+                    <strong>"{{ request('search') }}"</strong>
+                    <span class="search-indicator__count">
+                        ({{ $Products->total() }} نتيجة)
+                    </span>
+                </span>
+                <a href="{{ route('EcommerceAllProducts') }}" class="search-indicator__clear" aria-label="Clear search">
+                    <i class="bi bi-x-circle me-1"></i>
+                    مسح البحث
+                </a>
+            </div>
+        </div>
+    @endif
+
+    {{-- Brands Bar --}}
+    @include('components.brand-logos')
+
+
+    <div class="container py-4">
+        <div class="row g-4">
+
+
+
+            {{-- Search Bar ────────────────────────────────
+            <div class="search-bar-wrap mb-4">
+                <div class="search-bar">
+                    <i class="bi bi-search search-bar__icon"></i>
+                    <input type="text" id="searchInput" class="search-bar__input" placeholder="ابحث عن منتج..."
+                        value="{{ request('search') }}" autocomplete="off">
+                    {{-- X لمسح البحث --}}
+            {{-- <button class="search-bar__clear d-none" id="searchClear" type="button" aria-label="مسح البحث">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                {{-- نتيجة البحث Live --}}
+            {{-- <div class="search-status" id="searchStatus"></div>
+            </div>  --}}
+
+
+
+            {{-- ════════════════════════════════
+             Sidebar — الفلترة
+        ════════════════════════════════ --}}
+            <aside class="col-lg-3 d-none d-lg-block">
+
+                <form method="GET" action="{{ route('EcommerceAllProducts') }}" id="filtersForm">
+
+                    {{-- حافظ على قيمة الـ search لما الفلتر يتطبق --}}
+                    <input type="hidden" name="search" id="hiddenSearch" value="{{ request('search') }}">
+
+                    {{-- التصنيفات --}}
+                    {{-- <div class="filter-card mb-3">
+                                <button type="button" class="filter-card__header w-100" data-bs-toggle="collapse"
+                                    data-bs-target="#filterCats" aria-expanded="true">
+                                    <span>التصنيفات</span>
+                                    <i class="bi bi-chevron-up filter-chevron"></i>
+                                </button>
+                                <div class="collapse show filter-card__body" id="filterCats">
+                                    @foreach ($FilterCategories as $cat)
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="category[]"
+                                                value="{{ $cat->category_id }}" id="cat_{{ $cat->category_id }}"
+                                                {{ in_array($cat->category_id, request('category', [])) ? 'checked' : '' }}
+                                                onchange="this.form.submit()">
+                                            <label class="form-check-label d-flex justify-content-between"
+                                                for="cat_{{ $cat->category_id }}">
+                                                <span>{{ $cat->category_name }}</span>
+                                                <span class="filter-count">{{ $cat->ecommerce_products_count }}</span>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div> --}}
+
+                    {{-- الشركة --}}
+                    {{-- <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100" data-bs-toggle="collapse"
+                            data-bs-target="#filterBrand" aria-expanded="false">
+                            <span>الشركة</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterBrand">
+                            @foreach ($FilterBrands ?? [] as $brand)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="brand[]"
+                                        value="{{ $brand->maintenancecompany_id }}"
+                                        id="brand_{{ $brand->maintenancecompany_id }}"
+                                        {{ in_array($brand->maintenancecompany_id, request('brand', [])) ? 'checked' : '' }}
+                                        onchange="this.form.submit()">
+                                    <label class="form-check-label" for="brand_{{ $brand->maintenancecompany_id }}">
+                                        {{ $brand->maintenancecompany_title }}
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div> --}}
+
+                    {{-- متاح في الفروع --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100" data-bs-toggle="collapse"
+                            data-bs-target="#filterBranchs" aria-expanded="false">
+                            <span>متاح في الفروع</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterBranchs">
+                            @foreach (['فرع الشيخ زايد - التجاري', 'فرع المحطة الجديدة - شارع مكة', 'فرع المرحلة الخامسة - القماش'] as $b)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="branchs[]"
+                                        value="{{ $b }}" id="b_{{ $loop->index }}"
+                                        {{ in_array($b, request('branchs', [])) ? 'checked' : '' }}
+                                        onchange="this.form.submit()">
+                                    <label class="form-check-label" for="b_{{ $loop->index }}">{{ $b }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    
+                    {{-- الماركة --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100" data-bs-toggle="collapse"
+                            data-bs-target="#filterBrand" aria-expanded="false">
+                            <span>الماركة</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterBrand">
+                            @foreach (['ايفون (33)', 'سامسونج (40)', 'ريلمي (15)', 'شاومي (22)', 'هواوي (10)', 'إنفنكس (7)'] as $b)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="brand[]"
+                                        value="{{ $b }}" id="b_{{ $loop->index }}"
+                                        {{ in_array($b, request('brand', [])) ? 'checked' : '' }}
+                                        onchange="this.form.submit()">
+                                    <label class="form-check-label"
+                                        for="b_{{ $loop->index }}">{{ $b }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    {{-- السعر --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100" data-bs-toggle="collapse"
+                            data-bs-target="#filterPrice" aria-expanded="true">
+                            <span>السعر</span>
+                            <i class="bi bi-chevron-up filter-chevron"></i>
+                        </button>
+                        <div class="collapse show filter-card__body" id="filterPrice">
+
+                            <div class="d-flex justify-content-between mb-2 small fw-semibold">
+                                <span id="priceValMin">{{ number_format($minPrice ?? 0) }} ج.م</span>
+                                <span id="priceValMax">{{ number_format(request('max_price', $maxPrice ?? 100000)) }}
+                                    ج.م</span>
+                            </div>
+
+                            <input type="range" class="price-range w-100" name="max_price" min="{{ $minPrice ?? 0 }}"
+                                max="{{ $maxPrice ?? 100000 }}" value="{{ request('max_price', $maxPrice ?? 100000) }}"
+                                id="priceRange" {{-- mouseup/touchend بيبعت الـ form بعد ما المستخدم يسيب الـ slider --}}
+                                oninput="document.getElementById('priceValMax').textContent = Number(this.value).toLocaleString('ar-EG') + ' ج.م'"
+                                onchange="document.getElementById('filtersForm').submit()">
+                            {{--   onchange بيشتغل في كل البراوزرات لما المستخدم يسيب الـ slider
+                                        oninput بيشتغل real-time عشان يبين الرقم بس مش بيبعت  --}}
+
+                        </div>
+                    </div>
+
+                    {{-- اللون --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100" data-bs-toggle="collapse"
+                            data-bs-target="#filterColor" aria-expanded="false">
+                            <span>اللون</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterColor">
+                            <div class="color-swatches">
+                                <input type="hidden" name="color" id="colorInput" value="{{ request('color') }}">
+                                @foreach ([['val' => 'black', 'hex' => '#111', 'label' => 'أسود'], ['val' => 'white', 'hex' => '#f0f0f0', 'label' => 'أبيض'], ['val' => 'blue', 'hex' => '#2563eb', 'label' => 'أزرق'], ['val' => 'red', 'hex' => '#ef4444', 'label' => 'أحمر'], ['val' => 'green', 'hex' => '#22c55e', 'label' => 'أخضر'], ['val' => 'gold', 'hex' => '#f59e0b', 'label' => 'ذهبي']] as $c)
+                                    <button type="button"
+                                        class="color-swatch {{ request('color') === $c['val'] ? 'active' : '' }}"
+                                        style="background: {{ $c['hex'] }}" title="{{ $c['label'] }}"
+                                        onclick="document.getElementById('colorInput').value='{{ $c['val'] }}'; document.getElementById('filtersForm').submit()">
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- المساحة الداخلية --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100" data-bs-toggle="collapse"
+                            data-bs-target="#filterStorage" aria-expanded="false">
+                            <span>المساحة الداخلية</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterStorage">
+                            @foreach (['64 جيجا بايت', '128 جيجا بايت', '256 جيجا بايت', '512 جيجا بايت'] as $s)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="storage[]"
+                                        value="{{ $s }}" id="s_{{ $loop->index }}"
+                                        {{ in_array($s, request('storage', [])) ? 'checked' : '' }}
+                                        onchange="this.form.submit()">
+                                    <label class="form-check-label"
+                                        for="s_{{ $loop->index }}">{{ $s }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- سعة الرامات --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100" data-bs-toggle="collapse"
+                            data-bs-target="#filterRam" aria-expanded="false">
+                            <span>سعة الرامات</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterRam">
+                            @foreach (['4 جيجا بايت', '8 جيجا بايت', '12 جيجا بايت', '16 جيجا بايت', '32 جيجا بايت', '64 جيجا بايت'] as $r)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="ram[]"
+                                        value="{{ $r }}" id="r_{{ $loop->index }}"
+                                        {{ in_array($r, request('ram', [])) ? 'checked' : '' }}
+                                        onchange="this.form.submit()">
+                                    <label class="form-check-label"
+                                        for="r_{{ $loop->index }}">{{ $r }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- البروسيسور (CPU) --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100" data-bs-toggle="collapse"
+                            data-bs-target="#filterCPU" aria-expanded="false">
+                            <span>البروسيسور (CPU)</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterCPU">
+                            @foreach (['راباعي النواة', 'سداسي النواة', 'ثماني النواة'] as $c)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="cpu[]"
+                                        value="{{ $c }}" id="c_{{ $loop->index }}"
+                                        {{ in_array($c, request('cpu', [])) ? 'checked' : '' }}
+                                        onchange="this.form.submit()">
+                                    <label class="form-check-label"
+                                        for="c_{{ $loop->index }}">{{ $c }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- الشاحن --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100" data-bs-toggle="collapse"
+                            data-bs-target="#filterCharger" aria-expanded="false">
+                            <span>الشاحن</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterCharger">
+                            @foreach (['18 وات', '33 وات', '65 وات'] as $ch)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="charger[]"
+                                        value="{{ $ch }}" id="ch_{{ $loop->index }}"
+                                        {{ in_array($ch, request('charger', [])) ? 'checked' : '' }}
+                                        onchange="this.form.submit()">
+                                    <label class="form-check-label"
+                                        for="ch_{{ $loop->index }}">{{ $ch }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    {{-- الضمان --}}
+                    <div class="filter-card mb-3">
+                        <button type="button" class="filter-card__header w-100" data-bs-toggle="collapse"
+                            data-bs-target="#filterWarranty" aria-expanded="false">
+                            <span>الضمان</span>
+                            <i class="bi bi-chevron-down filter-chevron"></i>
+                        </button>
+                        <div class="collapse filter-card__body" id="filterWarranty">
+                            @foreach (['بدون ضمان', 'سنة', 'سنتين', '3 سنوات'] as $w)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="warranty[]"
+                                        value="{{ $w }}" id="w_{{ $loop->index }}"
+                                        {{ in_array($w, request('warranty', [])) ? 'checked' : '' }}
+                                        onchange="this.form.submit()">
+                                    <label class="form-check-label"
+                                        for="w_{{ $loop->index }}">{{ $w }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- زرار إعادة الضبط --}}
+                    @if (request()->hasAny(['category', 'brand', 'max_price', 'color', 'warranty', 'sort']))
+                        <a href="{{ route('EcommerceAllProducts') }}" class="btn btn-outline-danger btn-sm w-100 mb-3"
+                            id="filterResetAll">
+                            <i class="bi bi-x-circle me-1"></i>
+                            إعادة ضبط الفلترة
+                        </a>
+                    @endif
+
+                </form>
+            </aside>
+
+            {{-- ════════════════════════════════
+             Main Content — المنتجات
+        ════════════════════════════════ --}}
+            <div class="col-lg-9 col-12 products-section">
+
+                {{-- Toolbar --}}
+                <div class="products-toolbar d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+
+                    {{-- اليسار: الترتيب --}}
+                    <div class="d-flex align-items-center gap-2 filter-select">
+                        <select class="form-select form-select-sm toolbar-sort" name="sort" form="filtersForm"
+                            onchange="document.getElementById('filtersForm').submit()">
+                            <option value="latest" {{ request('sort') === 'latest' ? 'selected' : '' }}>الأكثر مبيعا
+                            </option>
+                            <option value="price_asc" {{ request('sort') === 'price_asc' ? 'selected' : '' }}>السعر:
+                                من
+                                الأقل</option>
+                            <option value="price_desc"{{ request('sort') === 'price_desc' ? 'selected' : '' }}>السعر:
+                                من
+                                الأعلى</option>
+                        </select>
+                    </div>
+
+                    {{-- اليمين: العدد + View Toggle + فلتر موبايل --}}
+                    <div class="d-flex align-items-center gap-2">
+
+
+                        {{-- Desktop + Tablet --}}
+                        <div class="view-toggle d-none d-md-flex">
+                            <button class="view-btn" id="gridViewBtn" title="شبكة">
+                                <i class="bi bi-grid"></i>
+                            </button>
+                            <button class="view-btn" id="listViewBtn" title="قائمة">
+                                <i class="bi bi-list-ul"></i>
+                            </button>
+                        </div>
+
+                        {{-- Mobile فقط --}}
+                        <div class="view-toggle d-flex d-md-none">
+                            <button class="view-btn" id="gridView2Btn" title="عمودين">
+                                <i class="bi bi-grid"></i>
+                            </button>
+                            <button class="view-btn" id="gridView1Btn" title="عمود واحد">
+                                <i class="bi bi-list-ul"></i>
+                            </button>
+                        </div>
+
+
+
+                    </div>
+
+                    {{-- فلتر موبايل --}}
+                    <div class="d-flex align-items-center gap-2 filter-btn">
+
+
+                        {{-- فلتر موبايل --}}
+                        <button class="btn btn-outline-secondary btn-sm d-lg-none" type="button"
+                            data-bs-toggle="offcanvas" data-bs-target="#mobileFilters">
+                            <i class="bi bi-funnel"></i>
+                            فلترة
+                        </button>
+
+                    </div>
+                </div>
+
+                {{-- Products Grid --}}
+                <div class="products-grid" id="productsGrid">
+
+                    @forelse($Products as $ep)
+                        <x-product-card :id="$ep->ecommerceproduct_id" :name="$ep->product?->product_name ?? ''" :price="$ep->product?->product_sellprice ?? 0" :offerPrice="$ep->product?->product_offerprice ?? null"
+                            :image="$ep->product?->product_image ?? ''" route="ProductDetails" :hasOffer="($ep->product?->product_offerprice ?? 0) > 0 &&
+                                $ep->product?->product_offerprice < $ep->product?->product_sellprice" />
+                    @empty
+                        <div class="col-12 text-center py-5">
+                            <i class="bi bi-search" style="font-size: 3rem; color: var(--text)"></i>
+                            <p class="mt-3 text-muted">لا توجد منتجات</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                {{-- Pagination --}}
+                @if ($Products->hasPages())
+                    <div class="products-pagination mt-4 d-flex justify-content-center align-items-center gap-2 flex-wrap">
+
+                        @if ($Products->onFirstPage())
+                            <button class="pagination-btn" disabled>السابق</button>
+                        @else
+                            <a href="{{ $Products->previousPageUrl() }}" class="pagination-btn"
+                                id="prevPage">السابق</a>
+                        @endif
+
+                        @foreach ($Products->getUrlRange(1, $Products->lastPage()) as $page => $url)
+                            <a href="{{ $url }}"
+                                class="pagination-btn {{ $page === $Products->currentPage() ? 'active' : '' }}"
+                                id="activePage">
+                                {{ $page }}
+                            </a>
+                        @endforeach
+
+                        @if ($Products->hasMorePages())
+                            <a href="{{ $Products->nextPageUrl() }}" class="pagination-btn" id="nextPage">التالي</a>
+                        @else
+                            <button class="pagination-btn" disabled>التالي</button>
+                        @endif
+
+                    </div>
+                @endif
+
+            </div>
+        </div>
+    </div>
+
+
+    {{-- Mobile Offcanvas --}}
+    <div class="offcanvas offcanvas-end" id="mobileFilters" tabindex="-1">
+        <div class="offcanvas-header border-bottom">
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+            <h5 class="offcanvas-title mb-0">الفلترة</h5>
+        </div>
+        <div class="offcanvas-body">
+            <form method="GET" action="{{ route('EcommerceAllProducts') }}">
+                <div class="filter-card mb-3">
+                    <div class="filter-card__header">التصنيفات</div>
+                    <div class="filter-card__body">
+                        @foreach ($FilterCategories as $cat)
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="category[]"
+                                    value="{{ $cat->category_id }}"
+                                    {{ in_array($cat->category_id, request('category', [])) ? 'checked' : '' }}>
+                                <label class="form-check-label d-flex justify-content-between">
+                                    <span>{{ $cat->category_name }}</span>
+                                    <span class="filter-count">{{ $cat->ecommerce_products_count }}</span>
+                                </label>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="filter-card mb-3">
+                    <div class="filter-card__header">الشركة</div>
+                    <div class="filter-card__body">
+                        @foreach ($FilterBrands as $brand)
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="brand[]"
+                                    value="{{ $brand->maintenancecompany_id }}"
+                                    {{ in_array($brand->maintenancecompany_id, request('brand', [])) ? 'checked' : '' }}>
+                                <label class="form-check-label">{{ $brand->maintenancecompany_title }}</label>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                <button type="submit" class="btn hero__btn w-100 mt-3" aria-label="filter">
+                    <i class="bi bi-funnel me-1"></i>
+                    تطبيق الفلترة
+                </button>
+                @if (request()->hasAny(['category', 'brand', 'max_price', 'color', 'warranty', 'search']))
+                    <a href="{{ route('EcommerceAllProducts') }}" class="btn btn-outline-danger w-100 mt-2"
+                        id="filterReset">
+                        إعادة الضبط
+                    </a>
+                @endif
+            </form>
+        </div>
+    </div>
+
+
+@endsection
+
+@push('scripts')
+    <script>
+        (function() {
+            'use strict';
+
+            // ── العناصر ──
+            let grid = document.getElementById('productsGrid');
+            let paginWrap = document.getElementById('paginationWrap');
+            let countEl = document.getElementById('productsCount');
+            let searchInput = document.getElementById('searchInput');
+            let searchClear = document.getElementById('searchClear');
+            let hiddenSearch = document.getElementById('hiddenSearch');
+            let searchStatus = document.getElementById('searchStatus');
+
+            if (!grid) return;
+
+            // ══════════════════════════════════════
+            // View Toggle — حل مشكلة التعليق
+            // منطق واحد واضح: نحدد الـ state الحالي
+            // ونشيل كل الـ classes القديمة أول
+            // ══════════════════════════════════════
+            let VIEWS = {
+                GRID: '', // لا كلاس
+                LIST: 'products-grid--list',
+                SINGLE: 'products-grid--single',
+            };
+
+            function setView(viewKey) {
+                // امسح كل الـ view classes الممكنة
+                Object.values(VIEWS).forEach(function(cls) {
+                    if (cls) grid.classList.remove(cls);
+                });
+
+                // ضيف الجديدة
+                if (VIEWS[viewKey]) {
+                    grid.classList.add(VIEWS[viewKey]);
+                }
+
+                // حدّث الأزرار
+                ['gridViewBtn', 'listViewBtn', 'gridView2Btn', 'gridView1Btn'].forEach(function(id) {
+                    let btn = document.getElementById(id);
+                    if (btn) btn.classList.remove('active');
+                });
+
+                let activeMap = {
+                    GRID: ['gridViewBtn'],
+                    LIST: ['listViewBtn'],
+                    SINGLE: ['gridView1Btn'],
+                };
+
+                (activeMap[viewKey] || []).forEach(function(id) {
+                    let btn = document.getElementById(id);
+                    if (btn) btn.classList.add('active');
+                });
+
+                // احفظ في localStorage
+                localStorage.setItem('productView', viewKey);
+            }
+
+            // Restore
+            let savedView = localStorage.getItem('productView') || 'GRID';
+            setView(savedView);
+
+            // Events
+            let btnMap = {
+                'gridViewBtn': 'GRID',
+                'listViewBtn': 'LIST',
+                'gridView2Btn': 'GRID',
+                'gridView1Btn': 'SINGLE',
+            };
+
+            Object.keys(btnMap).forEach(function(id) {
+                let btn = document.getElementById(id);
+                if (btn) {
+                    btn.addEventListener('click', function() {
+                        setView(btnMap[id]);
+                    });
+                }
+            });
+
+            // ══════════════════════════════════════
+            // Collapse chevron
+            // ══════════════════════════════════════
+            document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(btn) {
+                let target = document.querySelector(btn.getAttribute('data-bs-target'));
+                let chevron = btn.querySelector('.filter-chevron');
+                if (!target || !chevron) return;
+
+                target.addEventListener('show.bs.collapse', function() {
+                    chevron.classList.replace('bi-chevron-down', 'bi-chevron-up');
+                });
+                target.addEventListener('hide.bs.collapse', function() {
+                    chevron.classList.replace('bi-chevron-up', 'bi-chevron-down');
+                });
+            });
+
+            // ══════════════════════════════════════
+            // Pagination — AJAX
+            // لما المستخدم يضغط على رقم صفحة
+            // بنعمل fetch بدل redirect
+            // ══════════════════════════════════════
+            document.addEventListener('click', function(e) {
+                let paginBtn = e.target.closest('#paginationWrap .pagination-btn');
+                if (!paginBtn || paginBtn.tagName === 'BUTTON') return; // disabled buttons
+
+                e.preventDefault();
+
+                let href = paginBtn.getAttribute('href');
+                if (!href || href === '#') return;
+
+                grid.style.opacity = '0.5';
+
+                fetch(href, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                    })
+                    .then(function(res) {
+                        return res.json();
+                    })
+                    .then(function(data) {
+                        grid.innerHTML = data.html;
+                        if (paginWrap) paginWrap.innerHTML = data.pagination;
+                        if (countEl) countEl.textContent = data.total + ' منتج';
+                        window.history.replaceState(null, '', href);
+                        grid.style.opacity = '1';
+
+                        // scroll للأعلى
+                        grid.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+
+                        // أعد تطبيق الـ view
+                        let currentView = localStorage.getItem('productView') || 'GRID';
+                        if (VIEWS[currentView]) grid.classList.add(VIEWS[currentView]);
+                    })
+                    .catch(function() {
+                        grid.style.opacity = '1';
+                    });
+            });
+
+        })();
+    </script>
+@endpush
+########################################
+home
+
+{{-- resources/views/home.blade.php --}}
+@extends('layouts.app')
+
+@section('title', ($ecommerceSharedData['branch']->branch_name ?? '') . ' - الرئيسية')
+@section('description', 'أقوى عروض الموبايلات والإكسسوارات')
+
+@section('content')
+
+    {{-- ══════════════════════ HERO SLIDER ══════════════════════ --}}
+    <section class="hero-section" aria-label="البانر الرئيسي">
+        <div id="heroCarousel" class="carousel slide container" data-bs-ride="carousel" data-bs-interval="8000">
+
+            {{-- Indicators --}}
+            <div class="carousel-indicators">
+                @foreach ($ScrollingOffers as $i => $offer)
+                    <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{ $i }}"
+                        class="{{ $i === 0 ? 'active' : '' }}" aria-label="Slide {{ $i + 1 }}">
+                    </button>
+                @endforeach
+            </div>
+
+            <div class="carousel-inner">
+                @forelse($ScrollingOffers as $i => $offer)
+                    <div class="carousel-item {{ $i === 0 ? 'active' : '' }}">
+                        <div class="hero-slide">
+                            <div class="container h-100">
+                                <div class="row h-100 align-items-center">
+
+                                    {{-- النص --}}
+                                    <div class="col-md-5 order-2 order-md-1 hero-slide__content">
+                                        <h1 class="hero-slide__title">
+                                            {{ $offer->scrollingoffer_headline }}
+                                        </h1>
+                                        <p class="hero-slide__subtitle">
+                                            {{ $offer->scrollingoffer_description }}
+                                        </p>
+                                        @if ($offer->scrollingoffer_url)
+                                            <a href="{{ $offer->scrollingoffer_url }}" class="btn hero__btn" target="_blank"
+                                                rel="noopener">
+                                                تسوق الآن
+                                            </a>
+                                        @endif
+                                    </div>
+
+                                    {{-- الصورة --}}
+                                    <div class="col-md-7 order-1 order-md-2 text-center">
+                                        {{-- موبايل
+                                        @if ($offer->scrollingoffer_imagemobile)
+                                        <img src="{{ asset('images/ScrollingOffers/' . $offer->scrollingoffer_imagemobile) }}"
+                                            alt="{{ $offer->scrollingoffer_headline }}" class="hero-slide__img d-md-none"
+                                            loading="{{ $i === 0 ? 'eager' : 'lazy' }}">
+                                        @endif --}}
+                                        {{-- ديسكتوب --}}
+                                        <img src="{{ asset('images/ScrollingOffers/' . $offer->scrollingoffer_imagemobile) }}"
+                                            alt="{{ $offer->scrollingoffer_headline }}" class="hero-slide__img"
+                                            loading="{{ $i === 0 ? 'eager' : 'lazy' }}"
+                                            fetchpriority="{{ $i === 0 ? 'high' : 'auto' }}" rel="preload">
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    {{-- لو مفيش offers في الـ DB --}}
+                    <div class="carousel-item active">
+                        <div class="hero-slide">
+                            <div class="container h-100">
+                                <div class="row h-100 align-items-center justify-content-center">
+                                    <div class="col-md-6 text-center">
+                                        <h1 class="hero-slide__title">
+                                            {{ $ecommerceSharedData['branch']->branch_name ?? 'مرحباً بك' }}
+                                        </h1>
+                                        <a href="{{ route('EcommerceAllProducts') }}" class="btn hero__btn">
+                                            تسوق الآن
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforelse
+            </div>
+
+            {{-- أزرار التنقل --}}
+            <button class="carousel-control-prev hero-carousel-btn hero-carousel-btn--prev" type="button"
+                data-bs-target="#heroCarousel" data-bs-slide="prev" aria-label="السابق">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+            <button class="carousel-control-next hero-carousel-btn hero-carousel-btn--next" type="button"
+                data-bs-target="#heroCarousel" data-bs-slide="next" aria-label="التالي">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+        </div>
+    </section>
+
+
+    {{-- ══════════════════════ BRANDS ══════════════════════ --}}
+    @include('components.brand-logos')
+    {{-- ══════════════════════ الاكثر مبيعاً ══════════════════════ --}}
+    <section class="section-padding" aria-labelledby="bestsellers-title">
+        <div class="container">
+            <h2 class="section-title mb-4">الأكثر مبيعاً</h2>
+            <div class="products-grid">
+                {{-- ══ الأكثر مبيعاً ══ --}}
+                @forelse($ThemostsellingEcommerceproducts as $ep)
+                    <x-product-card :id="$ep->ecommerceproduct_id" :name="$ep->product?->product_name ?? ''"
+                        :price="$ep->product?->product_sellprice ?? 0" :offerPrice="$ep->product?->product_offerprice ?? null"
+                        :image="$ep->product?->product_image ?? ''" route="ProductDetails"
+                        :hasOffer="($ep->product?->product_offerprice ?? 0) > 0
+                    && ($ep->product?->product_offerprice < $ep->product?->product_sellprice)" />
+                @empty
+                    <p class="text-muted text-center py-5">لا توجد منتجات</p>
+                @endforelse
+
+            </div>
+        </div>
+    </section>
+
+    {{-- ══════════════════════ التصنيفات ══════════════════════ --}}
+    <section class="section-padding" aria-labelledby="categories-title">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="section-title mb-0">التصنيفات</h2>
+                <a href="{{ route('EcommerceAllCategories') }}" class="section-more-link" aria-label="عرض المزيد">
+                    <i class="bi bi-arrow-right"></i> عرض المزيد
+                </a>
+            </div>
+            <div class="categories-grid">
+                @foreach ($Categories as $cat)
+                    <a href="{{ route('CategoryProduct', $cat->category_id) }}" class="category-card">
+                        <img rel="preload" src="{{ asset('images/categoriesimages/' . $cat->category_image) }}"
+                            alt="{{ $cat->category_name }}" class="category-card__img" loading="lazy">
+                        <span class="category-card__name">{{ $cat->category_name }}</span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    </section>
+
+    {{-- ══════════════════════ خصومات وعروض ══════════════════════ --}}
+    <section class="section-padding" aria-labelledby="offers-title">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="section-title mb-0" id="offers-title">خصومات و عروض</h2>
+
+                <a href="{{ route('EcommerceProductsWithOffers') }}" class="section-more-link" aria-label="عرض المزيد">
+                    <i class="bi bi-arrow-right"></i>
+                    عرض المزيد
+                </a>
+            </div>
+
+            <div class="products-grid">
+
+
+
+                {{-- ══ خصومات وعروض ══ --}}
+                @forelse($Productswithoffersanddiscounts as $ep)
+                    <x-product-card :id="$ep->ecommerceproduct_id" :name="$ep->product?->product_name ?? ''"
+                        :price="$ep->product?->product_sellprice ?? 0" :offerPrice="$ep->product?->product_offerprice ?? null"
+                        :image="$ep->product?->product_image ?? ''" route="ProductDetails"
+                        :hasOffer="($ep->product?->product_offerprice ?? 0) > 0
+                    && ($ep->product?->product_offerprice < $ep->product?->product_sellprice)" />
+                @empty
+                    <p class="text-muted text-center py-5">لا توجد عروض حالياً</p>
+                @endforelse
+            </div>
+
+            {{-- Pagination --}}
+            @if ($Productswithoffersanddiscounts->hasPages())
+                <div class="d-flex justify-content-center gap-2 mt-4">
+                    <a href="{{ $Productswithoffersanddiscounts->previousPageUrl() ?? '#' }}"
+                        class="btn btn-outline-secondary btn-sm px-3" @if (!$Productswithoffersanddiscounts->onFirstPage())
+                        aria-label="السابق" @endif>
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                    <a href="{{ $Productswithoffersanddiscounts->nextPageUrl() ?? '#' }}"
+                        class="btn btn-outline-secondary btn-sm px-3" @if ($Productswithoffersanddiscounts->hasMorePages())
+                        aria-label="التالي" @endif>
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </div>
+            @endif
+        </div>
+    </section>
+
+    {{-- ══════════════════════ عروض الصيانة ══════════════════════ --}}
+    @if ($Offersfromtheowners->count())
+        <section class="section-padding bg-var-secondary" aria-labelledby="maintenance-offers-title">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="section-title mb-0" id="maintenance-offers-title">
+                        عروض الصيانة من {{ $ecommerceSharedData['branch']->branch_name ?? 'PlusDigital' }}
+                    </h2>
+                    <a href="{{ route('EcommerceOffers') }}" class="section-more-link" aria-label="عرض المزيد">
+                        <i class="bi bi-arrow-right"></i>
+                        عرض المزيد
+                    </a>
+
+                </div>
+
+                @php
+                    $topOffers = $Offersfromtheowners->take(2);
+                    $bottomOffers = $Offersfromtheowners->skip(2)->take(1);
+                @endphp
+
+                <div class="maintenance-grid">
+                    {{-- صورتين جنب بعض --}}
+                    <div class="maintenance-grid__top">
+                        @foreach ($topOffers as $offer)
+                            <a href="{{ $offer->offerfromtheowner_url ?? '#' }}" class="maintenance-card"
+                                target="{{ $offer->offerfromtheowner_url ? '_blank' : '_self' }}" rel="noopener">
+                                <img src="{{ asset('images/Offersfromtheowners/' . $offer->offerfromtheowner_image) }}"
+                                    alt="{{ $offer->offerfromtheowner_headline }}" loading="lazy">
+                            </a>
+                        @endforeach
+                    </div>
+
+                    {{-- صورة كبيرة تحتهم --}}
+                    @foreach ($bottomOffers as $offer)
+                        <a href="{{ $offer->offerfromtheowner_url ?? '#' }}" class="maintenance-card maintenance-card--wide"
+                            target="{{ $offer->offerfromtheowner_url ? '_blank' : '_self' }}" rel="noopener">
+                            <img src="{{ asset('images/Offersfromtheowners/' . $offer->offerfromtheowner_image) }}"
+                                alt="{{ $offer->offerfromtheowner_headline }}" loading="lazy">
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
+    {{-- ══════════════════════ نظم الدفع ══════════════════════ --}}
+    <section class="features-bar" aria-label="نظم الدفع">
+        <div class="container">
+            <div class="row g-4 ">
+                @foreach ([['icon' => 'bi bi-credit-card', 'title' => 'وسائل الدفع', 'text' => 'لدينا وسائل دفع مختلفة, فيزا, فيزا مشترايات, امان, فاليو, كونتاكت, فودافون كاش, انستا باي.'], ['icon' => 'bi bi-shield-lock', 'title' => 'نظام الدفع آمن', 'text' => 'نضمن الدفع الآمن مع PVE'], ['icon' => 'bi bi-arrow-counterclockwise', 'title' => 'سياسة الاسترجاع', 'text' => 'استرجاع المنتجات وفقا لقانون حماية المستهلك'], ['icon' => 'bi bi-headset', 'title' => 'خدمة العملاء', 'text' => 'تواصل معنا 24 ساعة في اليوم, 7 ايام في الاسبوع ']] as $feature)
+                    <div class="col-12 col-md-4 col-lg-3">
+                        <div class="feature-item d-flex align-items-start gap-3">
+                            <div class="feature-item__icon-wrap">
+                                <i class="{{ $feature['icon'] }}"></i>
+                            </div>
+                            <div>
+                                <div class="feature-item__title">{{ $feature['title'] }}</div>
+                                <div class="feature-item__text">{{ $feature['text'] }}</div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </section>
+
+@endsection
+####################################
+app 
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="@yield('description', '')">
+
+    {{-- SEO --}}
+    <title>@yield('title', 'Plus Digital')</title>
+    <link rel="preload" href="{{ Vite::asset('resources/fonts/cairo/Cairo-Regular.woff2') }}" as="font"
+        type="font/woff2" crossorigin>
+    @stack('styles')
+    @vite(['resources/css/app.css', 'resources/css/products.css', 'resources/css/page-details.css', 'resources/js/app.js'])
+</head>
+
+<body>
+    @include('components.navbar', [
+        'staticLinks' => $ecommerceSharedData['staticLinks'] ?? [],
+        'navData' => $ecommerceSharedData['navData'] ?? [],
+        'branchName' => $ecommerceSharedData['branchName'] ?? '',
+        'branchImage' => $ecommerceSharedData['branchImage'] ?? '',
+        'phone' => $ecommerceSharedData['phone'] ?? '',
+        'logo' => $ecommerceSharedData['logo'] ?? '',
+    ])
+
+    <main id="main-content" role="main">
+        @yield('content')
+    </main>
+
+    @include('components.footer', [
+        'footerCategories' => $footerCategories ?? [],
+        'branch' => $Branch ?? null,
+        'SocialMediaContact' => $SocialMediaContact ?? null,
+        'mapUrl' => $mapUrl ?? '#',
+        'phone2' => $Branch?->branch_phone2 ?? '',
+    ])
+
+
+    @stack('scripts')
+
+    {{-- ══════ Search Modal ══════ --}}
+    <div id="searchModal" class="search-modal" role="dialog" aria-modal="true" aria-label="البحث عن منتج" hidden>
+
+        {{-- Backdrop --}}
+        <div class="search-modal__backdrop" id="searchBackdrop"></div>
+
+        {{-- Panel --}}
+        <div class="search-modal__panel">
+
+            {{-- Input Row --}}
+            <div class="search-modal__input-wrap">
+                <button type="button" class="search-modal__close" id="searchModalClose" aria-label="إغلاق البحث">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+
+                <input type="search" id="searchModalInput" class="search-modal__input" placeholder="ابحث عن منتج..."
+                    autocomplete="off" spellcheck="false" maxlength="100" dir="rtl">
+
+                <i class="bi bi-search search-modal__icon" aria-hidden="true"></i>
+            </div>
+
+            {{-- Hint --}}
+            <div class="search-modal__hint" id="searchHint">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <span>اكتب للبحث في المنتجات</span>
+            </div>
+
+            {{-- Loading --}}
+            <div class="search-modal__loading d-none" id="searchLoading">
+                <span class="search-spinner"></span>
+                <span>جاري البحث...</span>
+            </div>
+
+            {{-- Quick Categories --}}
+            @if (!empty($ecommerceSharedData['navData']['categories']))
+                <div class="search-modal__quick">
+                    <span class="search-modal__quick-label">تصفح بالتصنيف:</span>
+                    <div class="search-modal__quick-tags">
+                        @foreach (array_slice($ecommerceSharedData['navData']['categories'], 0, 6) as $cat)
+                            <a href="{{ route('CategoryProduct', $cat['slug']) }}" class="search-modal__quick-tag">
+                                {{ $cat['name'] }}
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+        </div>
+    </div>
+    <script>
+(function () {
+    'use strict';
+
+    /*
+    | Search Modal 
+    | المنطق:
+    | 1. المستخدم يفتح الـ modal بالضغط على أيقونة البحث
+    | 2. يكتب ما يريد البحث عنه
+    | 3. لما يضغط Enter أو يوقف الكتابة 3000ms → redirect لصفحة المنتجات
+    | 4. صفحة المنتجات تفلتر من الـ DB وتعرض النتائج
+    |
+    | الـ 3000ms debounce طويل شوية عن قصد — عشان ما نعملش redirect
+    | وهو لسه بيكتب. لو عاوز تقصّره اعمله 1000ms.
+    */
+
+    const PRODUCTS_URL = '{{ route("EcommerceAllProducts") }}';
+
+    const modal    = document.getElementById('searchModal');
+    const backdrop = document.getElementById('searchBackdrop');
+    const input    = document.getElementById('searchModalInput');
+    const closeBtn = document.getElementById('searchModalClose');
+    const trigger  = document.getElementById('navSearchBtn');
+    const triggerDesk  = document.getElementById('navSearchBtnDesk');
+    const hint     = document.getElementById('searchHint');
+    const loading  = document.getElementById('searchLoading');
+
+    if (!modal || !trigger || !input) return;
+
+    let isOpen    = false;
+    let debounce  = null;
+
+    // ── فتح الـ modal ──
+    function openModal() {
+        modal.removeAttribute('hidden');
+
+        // requestAnimationFrame عشان الـ CSS transition تشتغل
+        requestAnimationFrame(() => {
+            modal.classList.add('search-modal--open');
+        });
+
+        isOpen = true;
+        trigger.setAttribute('aria-expanded', 'true');
+        triggerDesk.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+
+        // focus بعد الـ animation
+        setTimeout(() => input.focus(), 50);
+    }
+
+    // ── إغلاق الـ modal ──
+    function closeModal() {
+        modal.classList.remove('search-modal--open');
+        isOpen = false;
+        trigger.setAttribute('aria-expanded', 'false');
+        triggerDesk.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+
+        // بعد انتهاء الـ transition
+        setTimeout(() => {
+            modal.setAttribute('hidden', '');
+            input.value = '';
+            showHint();
+        }, 260);
+    }
+
+    // ── UI States ──
+    function showHint() {
+        hint.classList.remove('d-none');
+        loading.classList.add('d-none');
+    }
+
+    function showLoading() {
+        hint.classList.add('d-none');
+        loading.classList.remove('d-none');
+    }
+
+    // ── Redirect لصفحة النتائج ──
+    function goToResults(query) {
+        if (!query || query.trim().length < 2) return;
+
+        showLoading();
+
+        // Redirect بسيط — زي Amazon
+        const url = new URL(PRODUCTS_URL);
+        url.searchParams.set('search', query.trim());
+        window.location.href = url.toString();
+    }
+
+    // ── Events ──
+    trigger.addEventListener('click', openModal);
+    
+    triggerDesk.addEventListener('click', openModal);
+
+    backdrop.addEventListener('click', closeModal);
+
+    closeBtn.addEventListener('click', closeModal);
+
+    // Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isOpen) closeModal();
+    });
+
+    // Input — debounce 600ms
+    input.addEventListener('input', function () {
+        const val = this.value.trim();
+
+        clearTimeout(debounce);
+
+        if (val.length < 2) {
+            showHint();
+            return;
+        }
+
+        /*
+        | 3000ms debounce — بعد ما المستخدم يوقف الكتابة
+        | بيعمل redirect تلقائي
+        | لو حابب تشيله خالص وتخلي المستخدم يضغط Enter بس،
+        | امسح الـ debounce وسيب الـ keydown بس
+        */
+        debounce = setTimeout(() => goToResults(val), 3000);
+    });
+
+    // Enter — فوري بدون debounce
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            clearTimeout(debounce);
+            goToResults(input.value);
+        }
+    });
+
+})();
+</script>
+    {{-- ══════ End Search Modal ══════ --}}
+</body>
+
+</html>
+###################################
+last 
+شايف المشكلة بوضوح.
+السبب: في الهوم بيدج بتبعت :hasOffer بـ camelCase، بس Blade components بتستقبل kebab-case بس في الـ HTML.
+blade{{-- غلط ──────────────────── --}}
+:hasOffer="..."
+:offerPrice="..."
+
+{{-- صح ───────────────────── --}}
+:has-offer="..."
+:offer-price="..."
+Laravel بيحوّل has-offer → hasOffer أوتوماتيك جوه الـ @props. لو بعتها بـ camelCase من برا، بيعتبرها variable string مش boolean expression، فـ $hasOffer بتبقى true دايماً.
+
+الملفات الكاملة بعد التعديل
+1. product-card.blade.php
+blade{{-- resources/views/components/product-card.blade.php --}}
+@props([
+    'id'         => 0,
+    'name'       => '',
+    'price'      => 0,
+    'offerPrice' => null,
+    'image'      => '',
+    'route'      => 'ProductDetails',
+    'hasOffer'   => false,
+])
+
+@php
+    /*
+     | الشرط المزدوج:
+     | 1. hasOffer = true (جاي من الـ parent)
+     | 2. offerPrice موجود وأقل من price فعلاً في الـ DB
+     | لو الاتنين صح → نعرض الخصم
+     |
+     | cast لـ float عشان نتجنب مقارنة string بـ number
+    */
+    $showOffer    = $hasOffer
+                 && $offerPrice !== null
+                 && (float)$offerPrice > 0
+                 && (float)$offerPrice < (float)$price;
+
+    $discount     = $showOffer
+                 ? round((((float)$price - (float)$offerPrice) / (float)$price) * 100)
+                 : 0;
+
+    $displayPrice = $showOffer ? $offerPrice : $price;
+@endphp
+
+<article class="product-card">
+
+    @if($showOffer && $discount > 0)
+    <span class="product-card__badge" aria-label="خصم {{ $discount }}%">
+        {{ $discount }}%
+    </span>
+    @endif
+
+    <a href="{{ route($route, $id) }}" class="product-card__img-wrap" aria-label="{{ $name }}">
+        @if($image)
+        <img src="{{ asset('images/productsimages/' . $image) }}"
+             alt="{{ $name }}"
+             class="product-card__img"
+             loading="lazy"
+             decoding="async"
+             width="148"
+             height="120">
+        @else
+        <div class="product-card__no-img" aria-hidden="true">
+            <i class="bi bi-image"></i>
+        </div>
+        @endif
+    </a>
+
+    <div class="product-card__body">
+        <h3 class="product-card__name">
+            <a href="{{ route($route, $id) }}">{{ $name }}</a>
+        </h3>
+
+        <div class="product-card__prices">
+            <span class="product-card__price {{ $showOffer ? 'product-card__price--offer' : '' }}">
+                {{ number_format($displayPrice) }} ج.م
+            </span>
+            @if($showOffer)
+            <span class="product-card__old-price">
+                {{ number_format($price) }}
+            </span>
+            @endif
+        </div>
+
+        <div class="product-card__actions">
+            <a href="{{ route($route, $id) }}" class="btn product-card__add-btn">
+                <i class="bi bi-bag" aria-hidden="true"></i>
+                أضف إلى السلة
+            </a>
+            <button class="btn product-card__wish-btn" type="button" aria-label="أضف للمفضلة">
+                <i class="bi bi-heart" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+
+</article>
+
+2. home.blade.php — الطريقة الصح لاستدعاء الـ component
+blade{{-- ══ الأكثر مبيعاً ══ --}}
+@forelse($ThemostsellingEcommerceproducts as $ep)
+    <x-product-card
+        :id="$ep->ecommerceproduct_id"
+        :name="$ep->product?->product_name ?? ''"
+        :price="$ep->product?->product_sellprice ?? 0"
+        :offer-price="$ep->product?->product_offerprice"
+        :image="$ep->product?->product_image ?? ''"
+        route="ProductDetails"
+        :has-offer="
+            ($ep->product?->product_offerprice ?? 0) > 0
+            && $ep->product?->product_offerprice < $ep->product?->product_sellprice
+        "
+    />
+@empty
+    <p class="text-muted text-center py-5">لا توجد منتجات</p>
+@endforelse
+
+{{-- ══ خصومات وعروض ══ --}}
+@forelse($Productswithoffersanddiscounts as $ep)
+    <x-product-card
+        :id="$ep->ecommerceproduct_id"
+        :name="$ep->product?->product_name ?? ''"
+        :price="$ep->product?->product_sellprice ?? 0"
+        :offer-price="$ep->product?->product_offerprice"
+        :image="$ep->product?->product_image ?? ''"
+        route="ProductDetails"
+        :has-offer="
+            ($ep->product?->product_offerprice ?? 0) > 0
+            && $ep->product?->product_offerprice < $ep->product?->product_sellprice
+        "
+    />
+@empty
+    <p class="text-muted text-center py-5">لا توجد عروض حالياً</p>
+@endforelse
+
+مشكلة Lighthouse — CLS وأداء الموبايل
+السبب الأول — Layout Shift
+الصور مفيهاش width وheight — المتصفح مش عارف حجمها قبل ما تتحمل فبيعمل shift لما تظهر.
+blade{{-- في product-card — أضف width وheight ──────── --}}
+<img src="..."
+     width="148"
+     height="120"
+     loading="lazy"
+     decoding="async">
+
+{{-- في hero — أضف dimensions ──────── --}}
+<img src="..."
+     width="560"
+     height="480"
+     loading="eager"
+     fetchpriority="high">
+
+{{-- في categories ──────── --}}
+<img src="..."
+     width="300"
+     height="210"
+     loading="lazy">
+السبب الثاني — CSS مكررة
+product-card__badge معرّفة في app.css و products.css — المتصفح بيحمل الاتنين.
+اشيل من app.css:
+css/* احذف من app.css هذه الـ class كاملة */
+.product-card__badge { ... }
+.product-card__price { ... }
+.product-card__price--offer { ... }
+.product-card__old-price { ... }
+وسيّب النسخة الصح في products.css فقط.
+السبب الثالث — brands animation بدون contain
+css/* أضف في app.css */
+.brands-scroller {
+    contain: layout style; /* ← بيقول للمتصفح إن الـ animation مش هتأثر على باقي الصفحة */
+}
+السبب الرابع — hero-slide__img بدون aspect-ratio
+css.hero-slide__img {
+    aspect-ratio: 560 / 480;  /* ← بيحجز المساحة قبل التحميل */
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+إجابة سؤالك — إزاي تضيف منتجات بعدين
+الطريقة الصح لأي product في أي صفحة:
+blade{{--
+    القاعدة الثابتة:
+    - :price       = product_sellprice    ← السعر الأصلي دايماً
+    - :offer-price = product_offerprice   ← سعر الخصم (null لو مفيش)
+    - :has-offer   = الشرط اللي بيتحقق من الـ DB
+    
+    الـ component نفسه بيحسب هل يعرض الخصم ولا لأ.
+    مش محتاج تعمل أي حسابات في الـ view.
+--}}
+<x-product-card
+    :id="$ep->ecommerceproduct_id"
+    :name="$ep->product?->product_name ?? ''"
+    :price="$ep->product?->product_sellprice ?? 0"
+    :offer-price="$ep->product?->product_offerprice"
+    :image="$ep->product?->product_image ?? ''"
+    route="ProductDetails"
+    :has-offer="
+        ($ep->product?->product_offerprice ?? 0) > 0
+        && $ep->product?->product_offerprice < $ep->product?->product_sellprice
+    "
+/>
+دي الـ template الثابتة — انسخها في أي صفحة عندك EcommerceProduct مع ->with('product').
+
+
+appcss
+@import "../../public/assets/css/bootstrap.rtl.min.css";
+@import "../../public/assets/icons/bootstrap-icons.min.css";
+
+@font-face {
+    font-family: "Cairo";
+    src:
+        url("../fonts/cairo/Cairo-Regular.woff2") format("woff2"),
+        url("../fonts/cairo/Cairo-Regular.woff") format("woff");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Cairo";
+    src:
+        url("../fonts/cairo/Cairo-Bold.woff2") format("woff2"),
+        url("../fonts/cairo/Cairo-Bold.woff") format("woff");
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Cairo";
+    src:
+        url("../fonts/cairo/Cairo-Light.woff2") format("woff2"),
+        url("../fonts/cairo/Cairo-Light.woff") format("woff");
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Cairo";
+    src:
+        url("../fonts/cairo/Cairo-SemiBold.woff2") format("woff2"),
+        url("../fonts/cairo/Cairo-SemiBold.woff") format("woff");
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* ══ 1. Variables ══ */
+:root {
+    --primary: #4066ac;
+    --heading: #0e001a;
+    --text: #4b5563;
+    --bg-heading: #0e001a;
+    --stroke: #e3e5e8;
+    --white: #ffffff;
+    --bg-secondary: #f5f6fa;
+    --red: #b91c1c; /* أحمر غامق — accessible */
+    --red-bg: #fef2f2; /* خلفية حمراء فاتحة */
+    --red-border: #fca5a5; /* حدود حمراء */
+
+    --bs-body-font-family: "Cairo", system-ui, sans-serif;
+    --font-main: "Cairo";
+    --font-size-base: 1rem;
+
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 1rem;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+    --transition: 0.3s ease;
+
+    --navbar-height: 70px;
+    --topbar-height: 36px;
+}
+.bg-var-primary {
+    background-color: var(--primary) !important;
+}
+.text-var-primary {
+    color: var(--primary) !important;
+}
+.border-var-primary {
+    border-color: var(--primary) !important;
+}
+
+.bg-var-heading {
+    background-color: var(--heading) !important;
+}
+.text-var-heading {
+    color: var(--heading) !important;
+}
+/* ══ 2. Reset & Base ══ */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+    /* overflow-x: hidden; */
+}
+
+body {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-family:
+        var(--font-main),
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+    color: var(--text);
+    background: var(--white);
+    -webkit-font-smoothing: antialiased;
+}
+
+button {
+    border: none;
+    outline: none;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+/* spec rules */
+.testimonial-item {
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    position: absolute;
+    width: 100%;
+}
+
+.testimonial-item.active {
+    opacity: 1;
+    position: relative;
+}
+/* end of spec rules */
+/* ══ 3. Utilities مخصصة ══ */
+
+.section-padding {
+    padding-block: 3rem;
+}
+.section-title {
+    font-size: clamp(1.3rem, 3vw, 1.75rem);
+    font-weight: 700;
+    color: var(--heading);
+}
+.navbar-brand {
+    max-height: 60px;
+    height: 60px !important;
+    display: flex;
+    justify-content: center;
+    width: fit-content;
+    align-items: center;
+}
+.navbar-brand img {
+    height: 100%;
+    width: fit-content;
+}
+/* Fix Collapse */
+.navbar-collapse {
+    visibility: visible !important;
+}
+
+@media (max-width: 991px) {
+    .navbar-collapse.collapsing,
+    .navbar-collapse:not(.show) {
+        visibility: hidden;
+    }
+}
+
+.navbar-toggler:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+.top-bar {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* navbar icons */
+.btn-link {
+    width: 24px !important;
+    height: 24px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ══════════════════════════════════════
+   Search Modal
+══════════════════════════════════════ */
+
+.search-modal[hidden] {
+    display: block !important;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.search-modal--open {
+    visibility: visible !important;
+    pointer-events: auto;
+}
+
+/* Backdrop */
+.search-modal__backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2999;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.search-modal--open .search-modal__backdrop {
+    opacity: 1;
+}
+
+/* Panel */
+.search-modal__panel {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(-16px);
+    width: min(640px, 94vw);
+    background: var(--white);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    z-index: 3000;
+    opacity: 0;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    transition:
+        transform 0.25s ease,
+        opacity 0.25s ease;
+}
+
+.search-modal--open .search-modal__panel {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+/* Input Row */
+.search-modal__input-wrap {
+    display: flex;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--stroke);
+}
+
+.search-modal__icon {
+    color: var(--text);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.search-modal__input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 1.05rem;
+    font-family: inherit;
+    color: var(--heading);
+    background: transparent;
+    min-width: 0;
+}
+
+.search-modal__input::placeholder {
+    color: var(--text);
+    opacity: 0.5;
+}
+
+/* مهم — بيشيل الـ X الافتراضي من الـ search input */
+.search-modal__input::-webkit-search-cancel-button {
+    display: none;
+}
+
+.search-modal__close {
+    background: var(--bg-secondary);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    transition:
+        background 0.2s,
+        color 0.2s;
+}
+
+.search-modal__close:hover {
+    background: var(--stroke);
+    color: var(--heading);
+}
+
+/* Hint */
+.search-modal__hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    color: var(--text);
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+/* Loading */
+.search-modal__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    color: var(--text);
+    font-size: 0.9rem;
+}
+
+.search-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--stroke);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.65s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Quick Categories */
+.search-modal__quick {
+    padding: 0.875rem 1rem 1rem;
+    border-top: 1px solid var(--stroke);
+}
+
+.search-modal__quick-label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text);
+    opacity: 0.7;
+    margin-bottom: 0.5rem;
+    text-align: right;
+}
+
+.search-modal__quick-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: flex-end;
+}
+
+.search-modal__quick-tag {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--stroke);
+    border-radius: 99px;
+    color: var(--heading);
+    text-decoration: none;
+    background: var(--bg-secondary);
+    transition:
+        background 0.2s,
+        color 0.2s,
+        border-color 0.2s;
+    white-space: nowrap;
+}
+
+.search-modal__quick-tag:hover {
+    background: var(--primary);
+    color: var(--white);
+    border-color: var(--primary);
+}
+
+/* Mobile */
+@media (max-width: 575px) {
+    .search-modal__panel {
+        width: 100%;
+        border-radius: 0;
+        left: 0;
+        transform: translateY(-16px);
+    }
+
+    .search-modal--open .search-modal__panel {
+        transform: translateY(0);
+    }
+}
+
+/* ── Hero ── */
+.hero-section {
+    max-height: 560px;
+    background: var(--stroke);
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.hero-slide {
+    min-height: 460px;
+    display: flex;
+    align-items: center;
+    padding-block: 1rem;
+}
+
+.hero-slide__content {
+    padding-block: 1rem;
+}
+
+.hero-slide__title {
+    font-size: clamp(1.4rem, 3.5vw, 2.5rem);
+    font-weight: 800;
+    color: var(--heading);
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.hero-slide__subtitle {
+    font-size: clamp(0.85rem, 1.5vw, 1rem);
+    color: var(--text);
+    line-height: 1.8;
+    margin-bottom: 1.75rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.hero__btn {
+    background: var(--primary);
+    color: var(--white);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.6rem 1.25rem;
+    border-radius: var(--radius-md);
+    display: inline-block;
+    transition:
+        background var(--transition),
+        color var(--transition);
+}
+.hero__btn:hover {
+    background: var(--bg-heading);
+    color: var(--white);
+}
+
+.hero-slide__img {
+    height: 585px;
+    width: 100%;
+    max-height: 585px;
+    max-width: 100%;
+}
+@media (max-width: 767px) {
+    .hero-slide__img {
+        height: 265px;
+        max-height: 265px;
+    }
+}
+.hero-carousel-btn {
+    width: 36px !important;
+    height: 36px !important;
+    background: transparent !important;
+    border-radius: 50% !important;
+    opacity: 1 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition);
+}
+
+.hero-carousel-btn:hover {
+    box-shadow: var(--shadow-sm);
+}
+
+.hero-carousel-btn i {
+    color: var(--heading);
+    font-size: 1rem;
+}
+@media (max-width: 768px) {
+    .hero-carousel-btn {
+        width: 16px !important;
+        height: 16px !important;
+    }
+    .hero-carousel-btn--prev,
+    .hero-carousel-btn--next {
+        display: none !important;
+    }
+}
+.hero-carousel-btn--prev {
+    right: -2rem !important;
+    left: auto !important;
+    top: 40%;
+}
+.hero-carousel-btn--next {
+    left: -2rem !important;
+    right: auto !important;
+    top: 40%;
+}
+
+.carousel-indicators button {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    transition:
+        background var(--transition),
+        transform var(--transition);
+}
+.carousel-indicators button.active {
+    background: var(--primary);
+    transform: scale(1.3);
+}
+/* ── Brands Bar ── */
+
+.brands-bar {
+    padding-block: 0.75rem;
+    border-block: 1px solid var(--stroke);
+    background: var(--bg-secondary);
+}
+
+.brands-scroller {
+    max-width: 1200px;
+    width: 100%;
+    display: flex;
+    overflow: hidden;
+    -webkit-mask: linear-gradient(
+        90deg,
+        transparent,
+        white 15%,
+        white 85%,
+        transparent
+    );
+    mask: linear-gradient(
+        90deg,
+        transparent,
+        white 15%,
+        white 85%,
+        transparent
+    );
+}
+
+.brands-scroller__inner {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    width: max-content;
+}
+
+/* بعد ما JS يضيف ready-- */
+.brands-scroller.is-ready .brands-scroller__inner {
+    animation: brandsScroll 20s linear infinite;
+    will-change: transform;
+}
+
+.brands-scroller.is-ready:hover .brands-scroller__inner {
+    animation-play-state: paused;
+}
+
+.brands-scroller__inner li {
+    flex-shrink: 0;
+    flex: 0 0 auto;
+    width: 250px;
+    min-width: 250px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 767px) {
+    .brands-scroller__inner li {
+        width: 150px;
+        min-width: 100px;
+    }
+}
+
+.brands-scroller__inner img {
+    height: 60px;
+    object-fit: contain;
+    filter: grayscale(100%);
+    opacity: 0.6;
+    transition:
+        filter 0.3s,
+        opacity 0.3s;
+}
+
+.brands-scroller.is-ready:hover .brands-scroller__inner img {
+    filter: none;
+    opacity: 1;
+}
+
+@keyframes brandsScroll {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .brands-scroller.is-ready .brands-scroller__inner {
+        animation: none;
+    }
+}
+/* ── Section Helpers ── */
+.section-padding {
+    padding-block: 3rem;
+}
+.section-title {
+    font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+    font-weight: 700;
+    color: var(--heading);
+}
+.section-more-link {
+    font-size: 0.9rem;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: color var(--transition);
+    font-weight: 700;
+}
+.section-more-link i {
+    transition: transform var(--transition);
+}
+.section-more-link:hover i {
+    transform: translateX(5px);
+}
+
+/* ── Products Grid ── */
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+}
+@media (max-width: 991px) {
+    .products-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+@media (max-width: 575px) {
+    .products-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ── Product Card ── */
+.product-card {
+    max-width: 290px;
+    position: relative;
+    border: 1px solid var(--stroke);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    gap: 12px;
+    background: var(--white);
+    transition:
+        box-shadow var(--transition),
+        transform var(--transition);
+}
+.product-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-3px);
+}
+
+/*
+ | نستخدم أحمر غامق على خلفية حمراء فاتحة
+ | النسبة: #7f1d1d على #fef2f2 = 7.2:1 ✓
+*/
+.product-card__badge {
+    position: absolute;
+    top: 12px;
+    left: 12px; /* RTL */
+    background: #e71604; /* أحمر فاتح جداً */
+    color: #fff; /* أحمر غامق — تباين 7.2:1 ✓ */
+    border: 1.5px solid #fca5a5;
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    letter-spacing: -0.5px;
+}
+
+/*
+ | السعر العادي
+*/
+.product-card__price {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--heading);
+}
+
+/*
+ | السعر لما يكون عليه خصم
+ | بدل الأحمر الفاتح نستخدم أحمر غامق
+ | #b91c1c على أبيض = 5.1:1 ✓
+*/
+.product-card__price--offer {
+    color: #b91c1c;
+}
+
+.product-card__old-price {
+    font-size: 0.8rem;
+    color: #6b7280; /* رمادي متوسط — 4.6:1 على أبيض ✓ */
+    text-decoration: line-through;
+}
+
+.product-card__img-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+}
+.product-card__img {
+    width: 148px;
+    height: 120px;
+    object-fit: contain;
+    transition: transform 0.35s ease;
+}
+.product-card__img-wrap:hover .product-card__img {
+    transform: scale(1.04);
+}
+
+@media (max-width: 575px) {
+    .product-card {
+        max-width: 164px;
+    }
+    .product-card__img-wrap {
+        width: 164px;
+        max-width: 164px;
+    }
+}
+.product-card__no-img {
+    width: 100%;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    font-size: 2rem;
+}
+
+.product-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+.product-card__name {
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--heading);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0;
+}
+.product-card__name a:hover {
+    color: var(--primary);
+}
+
+.product-card__prices {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.product-card__actions {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    max-width: 218px;
+    width: 100%;
+    align-self: flex-end;
+}
+
+.product-card__add-btn {
+    flex: 1;
+    background: var(--white);
+    border: 1px solid var(--primary);
+    color: var(--heading);
+    font-size: 0.82rem;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    padding: 0.4rem 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition:
+        background var(--transition),
+        color var(--transition),
+        border-color var(--transition);
+}
+.product-card__add-btn:hover {
+    background: var(--primary);
+    color: var(--white);
+}
+.product-card__wish-btn {
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    padding: 0.4rem 0.55rem;
+    border: none;
+    outline: none;
+    transition:
+        color var(--transition),
+        border-color var(--transition);
+}
+.product-card__wish-btn:hover {
+    border: 1px solid var(--red);
+}
+.product-card__wish-btn::before {
+    content: "\f417"; /* heart fill */
+    font-family: "bootstrap-icons";
+}
+.product-card__wish-btn:hover::before {
+    content: "\f415"; /* heart */
+    color: var(--red);
+}
+
+/* ── Categories Grid ── */
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+}
+
+.category-card {
+    position: relative;
+    border-radius: var(--radius-md);
+    background-image: url("../../public/images/ecommerce/categorybackground.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    overflow: hidden;
+    display: block;
+    height: 210px;
+    padding: 1rem;
+}
+@media (max-width: 767px) {
+    .category-card {
+        height: 128px;
+        padding: 0.5rem;
+    }
+}
+@media (max-width: 575px) {
+    .product-card__add-btn {
+        font-size: 0.5rem;
+    }
+    .categories-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+.category-card__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.35s ease;
+}
+.category-card:hover .category-card__img {
+    transform: translateY(-4px);
+}
+.category-card__name {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    padding: 0.5rem;
+    color: var(--white);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* ── Maintenance Grid ── */
+.maintenance-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.maintenance-grid__top {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+.maintenance-card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: var(--radius-md);
+    height: 344px;
+    max-height: 344px;
+    overflow: hidden;
+}
+.maintenance-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.35s ease;
+}
+
+.maintenance-card:hover img {
+    transform: scale(1.02);
+}
+/* ── Features Bar ── */
+.features-bar {
+    padding-block: 2.5rem;
+    border-top: 1px solid var(--stroke);
+}
+
+.feature-item {
+    padding: 1rem;
+}
+.feature-item__icon {
+    font-size: 2rem;
+    color: var(--primary);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+.feature-item__title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--heading);
+    margin-bottom: 0.25rem;
+}
+.feature-item__text {
+    font-size: 0.82rem;
+    color: var(--text);
+    line-height: 1.5;
+}
+
+/* ── Footer ── */
+.site-footer {
+    background: var(--bg-secondary);
+    color: var(--text);
+    padding-top: 3rem;
+    margin-top: 4rem;
+}
+
+@media (max-width: 767px) {
+    .site-footer .row div {
+        justify-content: center;
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+    }
+    .site-footer .row div:nth-child(2) {
+        order: 3;
+    }
+    .site-footer .row div:nth-child(3) {
+        order: 4;
+    }
+    .site-footer .row div:last-child {
+        .footer__social {
+            flex-direction: row;
+        }
+        order: 2;
+    }
+}
+footer a {
+    width: fit-content;
+}
+.footer__heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 1.25rem;
+}
+.footer__links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+.footer__links a {
+    font-size: 0.88rem;
+    color: var(--text);
+    transition: color var(--transition);
+}
+.footer__links a:hover {
+    color: var(--primary);
+}
+
+.footer__address {
+    font-style: normal;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    font-size: 0.88rem;
+}
+.footer__address p {
+    margin: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+.footer__address a {
+    color: var(--text);
+}
+.footer__address a:hover {
+    color: var(--primary);
+}
+
+.footer__social {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+.footer__social-link {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    transition: transform var(--transition);
+}
+.footer__social-link:hover {
+    transform: translateY(-5px);
+}
+
+.footer__bottom {
+    border-top: 1px solid var(--text);
+    margin-top: 1.5rem;
+    padding-top: 0.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    flex-direction: row-reverse;
+    gap: 1rem;
+    font-size: 0.83rem;
+    color: var(--text);
+}
+
+.footer__bottom p {
+    margin: 0;
+}
+.footer__payment {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+.footer__payment img {
+    height: 48px;
+    border-radius: 4px;
+    opacity: 0.8;
+}
+
+@media (max-width: 991px) {
+    .hero {
+        min-height: 420px;
+    }
+    .hero__arrow {
+        display: none;
+    }
+    .maintenance-grid__top {
+        grid-template-columns: 1fr;
+    }
+    .footer__bottom {
+        justify-content: center;
+        text-align: center;
+    }
+}
+/* ── Responsive ── */
+@media (max-width: 767px) {
+    .hero-slide {
+        min-height: 420px;
+        padding-block: 1.5rem;
+    }
+    .hero-slide__title {
+        -webkit-line-clamp: 2;
+    }
+    .hero-slide__subtitle {
+        -webkit-line-clamp: 3;
+    }
+    .hero-carousel-btn {
+        width: 32px !important;
+        height: 32px !important;
+    }
+    .maintenance-grid__top {
+        grid-template-columns: 1fr;
+    }
+    .features-bar .col-6 {
+        margin-bottom: 0.5rem;
+    }
+    .footer__bottom {
+        flex-direction: column-reverse;
+    }
+}
+
+pro 
+/* ── Page Header ── */
+.page-header {
+    background: var(--stroke);
+    padding-block: 1.75rem;
+    border-bottom: 1px solid var(--stroke);
+    margin-bottom: 0;
+    min-height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.page-header__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 0.4rem;
+}
+.breadcrumb-item a {
+    color: var(--primary);
+}
+.breadcrumb-item.active {
+    color: var(--text);
+}
+
+/* ── Filter Sidebar ── */
+.filter-card {
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.filter-card__header {
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--heading);
+    background: var(--bg-secondary);
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    text-align: right;
+    width: 100%;
+    transition: background var(--transition);
+}
+
+.filter-card__header:hover {
+    background: var(--stroke);
+}
+
+/* السهم بيتحول سموز */
+.filter-chevron {
+    transition: transform 0.25s ease;
+}
+.filter-card__body {
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.filter-count {
+    background: var(--bg-secondary);
+    border-radius: 99px;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.5rem;
+    color: var(--text);
+}
+.price-range {
+    width: 100%;
+    accent-color: var(--primary);
+}
+.color-swatches {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.color-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform var(--transition);
+    outline: none;
+    border: 2px solid transparent;
+}
+.color-swatch:hover {
+    transform: scale(1.15);
+}
+.color-swatch.active {
+    border-color: var(--primary);
+}
+
+/* ── Toolbar ── */
+.products-toolbar {
+    background: var(--white);
+    border-radius: var(--radius-md);
+}
+
+@media (max-width: 767px) {
+    .products-toolbar {
+        flex-direction: row-reverse;
+    }
+}
+.toolbar-sort {
+    font-size: 0.9rem;
+    border-radius: 12px;
+    border-color: var(--stroke);
+    padding: 4px 8px;
+}
+.products-count {
+    font-size: 0.9rem;
+}
+.view-toggle {
+    display: flex;
+    gap: 0.25rem;
+}
+.view-btn {
+    background: none;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-sm);
+    padding: 0.3rem 0.5rem;
+    color: var(--text);
+    cursor: pointer;
+    transition:
+        background var(--transition),
+        color var(--transition);
+}
+.view-btn.active,
+.view-btn:hover {
+    background: var(--primary);
+    color: var(--white);
+    border-color: var(--primary);
+}
+
+.products-section .products-grid {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 767px) {
+    .products-section .products-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ── List View ── */
+.products-grid--list {
+    grid-template-columns: 1fr !important;
+}
+
+.products-grid--list .product-card {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    max-width: 100% !important;
+    min-width: 0; /* مهم عشان الـ flex item ميتمددش برا */
+    max-height: 200px !important;
+}
+
+.products-grid--list .product-card__img-wrap {
+    max-width: 275px;
+    min-width: 120px;
+    flex-shrink: 0;
+    aspect-ratio: 1;
+    height: 168px;
+}
+
+.products-grid--list .product-card__body {
+    flex: 1;
+    min-width: 0; /* مهم جداً — بيمنع overflow في الـ flex */
+    padding-inline-start: 0.75rem;
+}
+
+.products-grid--list .product-card__name {
+    -webkit-line-clamp: 2;
+    font-size: 0.95rem;
+}
+
+.products-grid--single {
+    grid-template-columns: 1fr !important;
+}
+
+.products-grid--single .product-card {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    max-width: 100% !important;
+    min-width: 0;
+    max-height: 200px !important;
+}
+
+.products-grid--single .product-card__img-wrap {
+    width: 275px;
+    min-width: 100px;
+    height: 168px;
+    flex-shrink: 0;
+    aspect-ratio: 1;
+    background-color: var(--bg-secondary);
+}
+.products-grid--single .product-card__img-wrap img {
+    height: 122px;
+}
+
+.products-grid--single .product-card__body {
+    flex: 1;
+    min-width: 0;
+    padding-inline-start: 0.75rem;
+}
+
+/* ── Mobile: الكارت يملي العرض كامل دايماً ──
+   في الموبايل تحت 576 الكروت دايماً full width
+   سواء كانت في grid أو list
+*/
+@media (max-width: 575px) {
+    .products-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .products-grid .product-card {
+        width: 100%;
+    }
+
+    .products-grid--single,
+    .products-grid--list {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* .products-grid--single .product-card__img-wrap,
+    .products-grid--list .product-card__img-wrap {
+        width: 120px;
+        min-width: 120px;
+    } */
+}
+
+.products-pagination {
+    justify-content: flex-start !important;
+}
+
+/* Tablet — بدون sidebar */
+@media (min-width: 768px) and (max-width: 991px) {
+    #filtersSidebar {
+        display: none !important;
+    }
+    .col-lg-9 {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .products-grid:not(.products-grid--list) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.offcanvas {
+    z-index: 2000 !important;
+}
+
+.filter-btn button,
+.filter-btn button:active {
+    border: none !important;
+}
+
+@media (min-width: 768px) {
+    .filter-btn {
+        display: none !important;
+    }
+}
+
+.search-indicator__wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-secondary);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    padding: 0.625rem 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.search-indicator__text {
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.search-indicator__text strong {
+    color: var(--heading);
+}
+
+.search-indicator__count {
+    color: var(--text);
+    opacity: 0.7;
+    font-size: 0.85rem;
+}
+
+.search-indicator__clear {
+    font-size: 0.85rem;
+    color: var(--red);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+
+.search-indicator__clear:hover {
+    opacity: 0.7;
+}

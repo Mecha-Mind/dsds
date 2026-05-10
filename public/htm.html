@@ -1,0 +1,1467 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+    </head>
+    <style>
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .carsoul {
+            max-width: 1200px;
+            display: flex;
+            width: 100%;
+            /* height: 200px; */
+            overflow: hidden;
+            /* position: relative; */
+        }
+        .scroll-track {
+            display: flex;
+            width: max-content;
+            animation: scroll 10s linear infinite;
+        }
+        .scroll-track:hover {
+            animation-play-state: paused;
+        }
+        .item {
+            flex-shrink: 0;
+            flex: 0 0 auto;
+            width: 300px;
+            min-width: 300px;
+            height: 200px;
+            background-color: lightblue;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        @keyframes scroll {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+    </style>
+    <body>
+        <div class="carsoul">
+            <div class="scroll-track">
+                <div class="item">Item 1</div>
+                <div class="item">Item 2</div>
+                <div class="item">Item 3</div>
+                <div class="item">Item 4</div>
+                <div class="item">Item 1</div>
+                <div class="item">Item 2</div>
+                <div class="item">Item 3</div>
+                <div class="item">Item 4</div>
+            </div>
+            <div aria-hidden class="scroll-track">
+                <div class="item">Item 1</div>
+                <div class="item">Item 2</div>
+                <div class="item">Item 3</div>
+                <div class="item">Item 4</div>
+                <div class="item">Item 1</div>
+                <div class="item">Item 2</div>
+                <div class="item">Item 3</div>
+                <div class="item">Item 4</div>
+            </div>
+        </div>
+    </body>
+</html>
+<!--   @foreach($PartnerCompanies as $company)
+            <div class="brands-scroller__item">
+                <img src="{{ asset('images/partnercompany/' . $company->maintenancecompany_image) }}"
+                     alt="{{ $company->maintenancecompany_title }}"
+                     height="32" loading="lazy" decoding="async">
+            </div> -->
+
+
+
+
+
+            <!-- all products functionality -->
+
+            Structure الملفات
+resources/views/
+  layouts/
+    app.blade.php
+  components/
+    navbar.blade.php
+    footer.blade.php
+    product-card.blade.php
+    page-header.blade.php        ← جديد - الهيدر المشترك بين الصفحات
+  Products/
+    All/
+      index.blade.php            ← صفحة كل المنتجات
+  ProductDetails/
+    index.blade.php              ← صفحة تفاصيل المنتج
+  ShoppingCart/
+    index.blade.php              ← صفحة السلة
+
+public/
+  css/
+    bootstrap-icons.css          ← لوكال
+    fonts/                       ← fonts بتاعت bootstrap icons
+    app.css
+    home.css
+    products.css                 ← جديد
+    product-details.css          ← جديد
+    cart.css                     ← جديد
+
+Page Header Component
+blade{{-- resources/views/components/page-header.blade.php --}}
+@props([
+    'title'       => '',
+    'breadcrumbs' => [],
+])
+
+<div class="page-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-12 text-center">
+                <h1 class="page-header__title">{{ $title }}</h1>
+                @if(count($breadcrumbs))
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb justify-content-center mb-0">
+                        @foreach($breadcrumbs as $i => $crumb)
+                        @if($i === count($breadcrumbs) - 1)
+                        <li class="breadcrumb-item active" aria-current="page">
+                            {{ $crumb['name'] }}
+                        </li>
+                        @else
+                        <li class="breadcrumb-item">
+                            <a href="{{ $crumb['url'] }}">{{ $crumb['name'] }}</a>
+                        </li>
+                        @endif
+                        @endforeach
+                    </ol>
+                </nav>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+صفحة المنتجات الكاملة
+blade{{-- resources/views/Products/All/index.blade.php --}}
+@extends('layouts.app')
+
+@section('title', 'المنتجات — ' . ($ecommerceSharedData['branchName'] ?? ''))
+
+@section('content')
+
+{{-- Page Header --}}
+<x-page-header
+    title="المنتجات"
+    :breadcrumbs="[
+        ['name' => 'الرئيسية', 'url' => route('home')],
+        ['name' => 'المنتجات', 'url' => route('EcommerceAllProducts')],
+    ]"
+/>
+
+{{-- Brands Bar --}}
+<div class="brands-bar">
+    <div class="container">
+        <div class="brands-bar__track">
+            @foreach($PartnerCompanies as $company)
+            <div class="brands-bar__item">
+                <img src="{{ asset('images/partnercompany/' . $company->maintenancecompany_image) }}"
+                     alt="{{ $company->maintenancecompany_title }}"
+                     loading="lazy" height="30">
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="row g-4">
+
+        {{-- ════════════════════════════════
+             Sidebar — الفلترة
+        ════════════════════════════════ --}}
+        <aside class="col-lg-3 d-none d-lg-block" id="filtersSidebar">
+            <form method="GET" action="{{ route('EcommerceAllProducts') }}" id="filtersForm">
+
+                {{-- ماذا في اللوب --}}
+                <div class="filter-card mb-3">
+                    <div class="filter-card__header">
+                        <span>ماذا في اللوب</span>
+                        <i class="bi bi-chevron-up"></i>
+                    </div>
+                    <div class="filter-card__body">
+                        {{--
+                            ← لما ترجع الشغل:
+                            بتجيب عدد المنتجات في كل category من الـ DB
+                            وبتعرضها هنا كـ checkboxes
+                            مثال: Category::withCount('ecommerceProducts')->get()
+                        --}}
+                        @foreach($FilterCategories ?? [] as $cat)
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="category[]" value="{{ $cat->category_id }}"
+                                   id="cat_{{ $cat->category_id }}"
+                                   {{ in_array($cat->category_id, request('category', [])) ? 'checked' : '' }}
+                                   onchange="document.getElementById('filtersForm').submit()">
+                            <label class="form-check-label d-flex justify-content-between"
+                                   for="cat_{{ $cat->category_id }}">
+                                <span>{{ $cat->category_name }}</span>
+                                <span class="filter-count">{{ $cat->products_count ?? 0 }}</span>
+                            </label>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- الشركة --}}
+                <div class="filter-card mb-3">
+                    <div class="filter-card__header" data-bs-toggle="collapse" data-bs-target="#filterBrand">
+                        <span>الشركة</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div class="collapse show filter-card__body" id="filterBrand">
+                        @foreach($FilterBrands ?? [] as $brand)
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="brand[]" value="{{ $brand->maintenancecompany_id }}"
+                                   id="brand_{{ $brand->maintenancecompany_id }}"
+                                   {{ in_array($brand->maintenancecompany_id, request('brand', [])) ? 'checked' : '' }}
+                                   onchange="document.getElementById('filtersForm').submit()">
+                            <label class="form-check-label" for="brand_{{ $brand->maintenancecompany_id }}">
+                                {{ $brand->maintenancecompany_title }}
+                            </label>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- السعر --}}
+                <div class="filter-card mb-3">
+                    <div class="filter-card__header">
+                        <span>السعر</span>
+                        <i class="bi bi-chevron-up"></i>
+                    </div>
+                    <div class="filter-card__body">
+                        {{--
+                            ← Range slider بسيط
+                            لما ترجع الشغل: اجيب min وmax price من الـ DB
+                        --}}
+                        <input type="range" class="price-range"
+                               name="max_price"
+                               min="{{ $minPrice ?? 0 }}"
+                               max="{{ $maxPrice ?? 100000 }}"
+                               value="{{ request('max_price', $maxPrice ?? 100000) }}"
+                               oninput="document.getElementById('priceDisplay').textContent = this.value">
+                        <div class="d-flex justify-content-between mt-2">
+                            <span>{{ $minPrice ?? 0 }} ج.م</span>
+                            <span id="priceDisplay">{{ request('max_price', $maxPrice ?? 100000) }} ج.م</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- اللون --}}
+                <div class="filter-card mb-3">
+                    <div class="filter-card__header">
+                        <span>اللون</span>
+                        <i class="bi bi-chevron-up"></i>
+                    </div>
+                    <div class="filter-card__body">
+                        {{--
+                            ← لما ترجع الشغل: اجيب الألوان المتاحة من الـ DB
+                            حسب الـ products الموجودة
+                        --}}
+                        <div class="color-swatches">
+                            @foreach($FilterColors ?? [] as $color)
+                            <button type="button"
+                                    class="color-swatch {{ request('color') === $color['value'] ? 'active' : '' }}"
+                                    style="background: {{ $color['hex'] }}"
+                                    onclick="document.querySelector('[name=color]').value='{{ $color['value'] }}'; document.getElementById('filtersForm').submit()"
+                                    title="{{ $color['name'] }}">
+                            </button>
+                            @endforeach
+                            {{-- Default colors لو مفيش من الـ DB --}}
+                            <button type="button" class="color-swatch" style="background:#000" title="أسود"></button>
+                            <button type="button" class="color-swatch" style="background:#fff; border: 1px solid #ddd" title="أبيض"></button>
+                            <button type="button" class="color-swatch" style="background:#2563eb" title="أزرق"></button>
+                            <button type="button" class="color-swatch" style="background:#ef4444" title="أحمر"></button>
+                        </div>
+                        <input type="hidden" name="color" value="{{ request('color') }}">
+                    </div>
+                </div>
+
+                {{-- الضمان --}}
+                <div class="filter-card mb-3">
+                    <div class="filter-card__header" data-bs-toggle="collapse" data-bs-target="#filterWarranty">
+                        <span>الضمان</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div class="collapse show filter-card__body" id="filterWarranty">
+                        @foreach(['سنة', 'سنتين', '3 سنوات'] as $warranty)
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="warranty[]" value="{{ $warranty }}"
+                                   id="w_{{ $loop->index }}"
+                                   {{ in_array($warranty, request('warranty', [])) ? 'checked' : '' }}
+                                   onchange="document.getElementById('filtersForm').submit()">
+                            <label class="form-check-label" for="w_{{ $loop->index }}">{{ $warranty }}</label>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+
+            </form>
+        </aside>
+
+        {{-- ════════════════════════════════
+             Main Content — المنتجات
+        ════════════════════════════════ --}}
+        <div class="col-lg-9 col-12">
+
+            {{-- Toolbar --}}
+            <div class="products-toolbar d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+
+                {{-- اليسار: الترتيب --}}
+                <div class="d-flex align-items-center gap-2">
+                    <select class="form-select form-select-sm toolbar-sort"
+                            name="sort" form="filtersForm"
+                            onchange="document.getElementById('filtersForm').submit()">
+                        <option value="latest"   {{ request('sort') === 'latest'   ? 'selected' : '' }}>الأحدث</option>
+                        <option value="price_asc" {{ request('sort') === 'price_asc' ? 'selected' : '' }}>السعر: من الأقل</option>
+                        <option value="price_desc"{{ request('sort') === 'price_desc'? 'selected' : '' }}>السعر: من الأعلى</option>
+                    </select>
+                </div>
+
+                {{-- اليمين: العدد + View Toggle + فلتر موبايل --}}
+                <div class="d-flex align-items-center gap-2">
+                    <span class="products-count text-muted">
+                        {{-- ← لما ترجع الشغل: $Products->total() --}}
+                        {{ $Products->total() ?? 0 }} منتج
+                    </span>
+
+                    {{-- Toggle Grid/List --}}
+                    <div class="view-toggle d-none d-lg-flex">
+                        <button class="view-btn active" id="gridViewBtn" title="شبكة">
+                            <i class="bi bi-grid"></i>
+                        </button>
+                        <button class="view-btn" id="listViewBtn" title="قائمة">
+                            <i class="bi bi-list"></i>
+                        </button>
+                    </div>
+
+                    {{-- Toggle موبايل: 2 في الصف / 1 في الصف --}}
+                    <div class="view-toggle d-flex d-lg-none">
+                        <button class="view-btn active" id="gridView2Btn" title="عمودين">
+                            <i class="bi bi-grid"></i>
+                        </button>
+                        <button class="view-btn" id="gridView1Btn" title="عمود واحد">
+                            <i class="bi bi-list"></i>
+                        </button>
+                    </div>
+
+                    {{-- فلتر موبايل --}}
+                    <button class="btn btn-outline-secondary btn-sm d-lg-none"
+                            type="button"
+                            data-bs-toggle="offcanvas"
+                            data-bs-target="#mobileFilters">
+                        <i class="bi bi-funnel"></i>
+                        فلترة
+                    </button>
+                </div>
+            </div>
+
+            {{-- Products Grid --}}
+            <div class="products-grid" id="productsGrid">
+                @forelse($Products as $ep)
+                <x-product-card
+                    :id="$ep->ecommerceproduct_id"
+                    :name="$ep->product?->product_name ?? ''"
+                    :price="$ep->product?->product_sellprice ?? 0"
+                    :offer-price="$ep->product?->product_offerprice ?? null"
+                    :image="$ep->product?->product_image ?? ''"
+                    route="ProductDetails"
+                    :has-offer="($ep->product?->product_offerprice ?? 0) > 0 && ($ep->product?->product_offerprice < $ep->product?->product_sellprice)"
+                />
+                @empty
+                <div class="col-12 text-center py-5">
+                    <i class="bi bi-search" style="font-size: 3rem; color: var(--text)"></i>
+                    <p class="mt-3 text-muted">لا توجد منتجات</p>
+                </div>
+                @endforelse
+            </div>
+
+            {{-- Pagination --}}
+            @if($Products->hasPages())
+            <div class="products-pagination mt-4 d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                {{-- السابق --}}
+                @if($Products->onFirstPage())
+                <button class="pagination-btn" disabled>السابق</button>
+                @else
+                <a href="{{ $Products->previousPageUrl() }}" class="pagination-btn">السابق</a>
+                @endif
+
+                {{-- الأرقام --}}
+                @foreach($Products->getUrlRange(1, $Products->lastPage()) as $page => $url)
+                <a href="{{ $url }}"
+                   class="pagination-btn {{ $page === $Products->currentPage() ? 'active' : '' }}">
+                    {{ $page }}
+                </a>
+                @endforeach
+
+                {{-- التالي --}}
+                @if($Products->hasMorePages())
+                <a href="{{ $Products->nextPageUrl() }}" class="pagination-btn">التالي</a>
+                @else
+                <button class="pagination-btn" disabled>التالي</button>
+                @endif
+            </div>
+            @endif
+
+        </div>
+    </div>
+</div>
+
+{{-- Mobile Filters Offcanvas --}}
+<div class="offcanvas offcanvas-start" id="mobileFilters" tabindex="-1">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title">الفلترة</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        {{-- نفس محتوى الـ sidebar بالظبط --}}
+        <form method="GET" action="{{ route('EcommerceAllProducts') }}">
+            <div class="filter-card mb-3">
+                <div class="filter-card__header">التصنيفات</div>
+                <div class="filter-card__body">
+                    @foreach($FilterCategories ?? [] as $cat)
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox"
+                               name="category[]" value="{{ $cat->category_id }}"
+                               {{ in_array($cat->category_id, request('category', [])) ? 'checked' : '' }}>
+                        <label class="form-check-label">{{ $cat->category_name }}</label>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            <button type="submit" class="btn hero__btn w-100 mt-3">تطبيق الفلترة</button>
+        </form>
+    </div>
+</div>
+
+@endsection
+
+@section('scripts')
+<script>
+// ── View Toggle Desktop ──
+const gridViewBtn = document.getElementById('gridViewBtn');
+const listViewBtn = document.getElementById('listViewBtn');
+const grid        = document.getElementById('productsGrid');
+
+gridViewBtn?.addEventListener('click', () => {
+    grid.classList.remove('products-grid--list');
+    gridViewBtn.classList.add('active');
+    listViewBtn.classList.remove('active');
+    localStorage.setItem('productView', 'grid');
+});
+
+listViewBtn?.addEventListener('click', () => {
+    grid.classList.add('products-grid--list');
+    listViewBtn.classList.add('active');
+    gridViewBtn.classList.remove('active');
+    localStorage.setItem('productView', 'list');
+});
+
+// ── View Toggle Mobile ──
+const grid2Btn = document.getElementById('gridView2Btn');
+const grid1Btn = document.getElementById('gridView1Btn');
+
+grid2Btn?.addEventListener('click', () => {
+    grid.classList.remove('products-grid--single');
+    grid2Btn.classList.add('active');
+    grid1Btn.classList.remove('active');
+});
+
+grid1Btn?.addEventListener('click', () => {
+    grid.classList.add('products-grid--single');
+    grid1Btn.classList.add('active');
+    grid2Btn.classList.remove('active');
+});
+
+// ── Restore saved view ──
+if(localStorage.getItem('productView') === 'list') {
+    grid?.classList.add('products-grid--list');
+    listViewBtn?.classList.add('active');
+    gridViewBtn?.classList.remove('active');
+}
+</script>
+@endsection
+
+صفحة تفاصيل المنتج
+blade{{-- resources/views/ProductDetails/index.blade.php --}}
+@extends('layouts.app')
+
+@section('title', ($Product?->product?->product_name ?? 'تفاصيل المنتج') . ' — ' . ($ecommerceSharedData['branchName'] ?? ''))
+
+@section('content')
+
+<div class="container py-4">
+
+    {{-- ════════════════════ Product Main ════════════════════ --}}
+    <div class="row g-4">
+
+        {{-- الصور --}}
+        <div class="col-lg-5">
+            <div class="product-gallery">
+
+                {{-- الصورة الرئيسية --}}
+                <div class="product-gallery__main">
+                    <img id="mainProductImg"
+                         src="{{ asset('images/products/' . ($Product?->product?->product_image ?? 'placeholder.png')) }}"
+                         alt="{{ $Product?->product?->product_name ?? '' }}"
+                         class="product-gallery__img"
+                         loading="eager">
+                </div>
+
+                {{-- الصور الصغيرة --}}
+                {{--
+                    ← لما ترجع الشغل:
+                    لو في جدول للـ product images منفصل، اجيبهم هنا
+                    دلوقتي بنعرض الصورة الرئيسية بس
+                --}}
+                <div class="product-gallery__thumbs">
+                    <button class="product-gallery__thumb active"
+                            onclick="changeImage('{{ asset('images/products/' . ($Product?->product?->product_image ?? '')) }}', this)">
+                        <img src="{{ asset('images/products/' . ($Product?->product?->product_image ?? 'placeholder.png')) }}"
+                             alt="صورة 1">
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        {{-- البيانات --}}
+        <div class="col-lg-4">
+
+            {{-- التقييم --}}
+            <div class="product-detail__rating mb-2">
+                @for($i = 1; $i <= 5; $i++)
+                <i class="bi bi-star-fill {{ $i <= ($avgRating ?? 0) ? 'text-warning' : 'text-muted' }}"></i>
+                @endfor
+                <span class="text-muted ms-1">({{ $reviewsCount ?? 0 }})</span>
+            </div>
+
+            {{-- الاسم --}}
+            <h1 class="product-detail__name">
+                {{ $Product?->product?->product_name ?? '' }}
+            </h1>
+
+            {{-- الوصف --}}
+            <p class="product-detail__desc">
+                {{ $Product?->product?->product_description ?? '' }}
+            </p>
+
+            {{-- السعر --}}
+            <div class="product-detail__prices mb-3">
+                @php
+                    $sellPrice  = $Product?->product?->product_sellprice  ?? 0;
+                    $offerPrice = $Product?->product?->product_offerprice ?? 0;
+                    $hasOffer   = $offerPrice > 0 && $offerPrice < $sellPrice;
+                @endphp
+
+                @if($hasOffer)
+                <span class="product-detail__price text-danger">
+                    {{ number_format($offerPrice) }} جنية
+                </span>
+                <span class="product-detail__old-price">
+                    {{ number_format($sellPrice) }} جنية
+                </span>
+                <span class="product-detail__discount-badge">
+                    خصم {{ round((($sellPrice - $offerPrice) / $sellPrice) * 100) }}%
+                </span>
+                @else
+                <span class="product-detail__price">
+                    {{ number_format($sellPrice) }} جنية
+                </span>
+                @endif
+            </div>
+
+            {{-- المخزون --}}
+            <div class="product-detail__stock mb-3">
+                @php
+                    $stock = $Product?->product?->{232021} ?? 0;
+                    // ← لما ترجع الشغل: اسم الـ column للـ stock
+                    // في الـ DB كان اسمه '232021' — تأكد من الاسم الصح
+                @endphp
+                @if($stock > 0)
+                <span class="badge bg-success-subtle text-success">
+                    <i class="bi bi-check-circle me-1"></i>
+                    متاح ({{ $stock }})
+                </span>
+                @else
+                <span class="badge bg-danger-subtle text-danger">
+                    <i class="bi bi-x-circle me-1"></i>
+                    غير متاح
+                </span>
+                @endif
+            </div>
+
+            {{-- الكمية + السلة --}}
+            <div class="product-detail__actions mb-4">
+                <div class="quantity-control">
+                    <button type="button" class="qty-btn" onclick="changeQty(-1)">
+                        <i class="bi bi-dash"></i>
+                    </button>
+                    <input type="number" id="qtyInput" class="qty-input"
+                           value="1" min="1" max="{{ $stock }}">
+                    <button type="button" class="qty-btn" onclick="changeQty(1)">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
+
+                @if(session('customer_phone'))
+                <form method="POST"
+                      action="{{ route('CustomerRequestIncreseQuantityPost', $Product?->ecommerceproduct_id) }}"
+                      class="flex-1">
+                    @csrf
+                    <input type="hidden" name="quantity" id="hiddenQty" value="1">
+                    <button type="submit" class="btn hero__btn w-100">
+                        <i class="bi bi-bag-plus me-1"></i>
+                        أضف إلى السلة
+                    </button>
+                </form>
+                @else
+                <a href="{{ route('CustomerLogin') }}" class="btn hero__btn flex-1">
+                    <i class="bi bi-person me-1"></i>
+                    سجل دخول للشراء
+                </a>
+                @endif
+
+                <button class="btn btn-outline-secondary wishlist-btn" title="المفضلة">
+                    <i class="bi bi-heart"></i>
+                </button>
+            </div>
+
+            {{-- وسائل الدفع --}}
+            <div class="product-detail__payment">
+                <small class="text-muted d-block mb-2">وسائل الدفع المتاحة</small>
+                <div class="d-flex gap-2 align-items-center">
+                    @foreach(['visa.png', 'mastercard.png', 'paypal.png', 'stripe.png'] as $pm)
+                    <img src="{{ asset('images/socialmediacontacts/backing.png') }}"
+                         alt="وسيلة دفع" height="24" loading="lazy">
+                    @endforeach
+                </div>
+            </div>
+
+        </div>
+
+        {{-- منتجات مجاورة --}}
+        <div class="col-lg-3 d-none d-lg-block">
+            <h3 class="sidebar-title mb-3">منتجات تحبها مؤخراً</h3>
+            <div class="d-flex flex-column gap-3">
+                @foreach($RelatedProducts ?? [] as $related)
+                <a href="{{ route('ProductDetails', $related->ecommerceproduct_id) }}"
+                   class="related-product-card">
+                    <img src="{{ asset('images/products/' . ($related->product?->product_image ?? '')) }}"
+                         alt="{{ $related->product?->product_name ?? '' }}"
+                         loading="lazy">
+                    <div class="related-product-card__info">
+                        <p class="related-product-card__name">
+                            {{ $related->product?->product_name ?? '' }}
+                        </p>
+                        <span class="related-product-card__price">
+                            {{ number_format($related->product?->product_sellprice ?? 0) }} ج.م
+                        </span>
+                    </div>
+                </a>
+                @endforeach
+            </div>
+        </div>
+
+    </div>
+
+    {{-- ════════════════════ Specs Accordion ════════════════════ --}}
+    <div class="row mt-5">
+        <div class="col-lg-9">
+
+            {{-- المواصفات --}}
+            <div class="accordion specs-accordion mb-4" id="specsAccordion">
+                <div class="accordion-item border-0">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button specs-accordion__btn collapsed"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#specsContent">
+                            <i class="bi bi-list-ul me-2"></i>
+                            مواصفات المنتج
+                        </button>
+                    </h2>
+                    <div id="specsContent" class="accordion-collapse collapse show">
+                        <div class="accordion-body p-0">
+                            @if($Product?->product?->product_description)
+                            <table class="specs-table">
+                                {{--
+                                    ← لما ترجع الشغل:
+                                    لو في جدول specs منفصل، اجيب الـ specs من هناك
+                                    دلوقتي بنعرض الـ description
+                                --}}
+                                <tr>
+                                    <td class="specs-table__key">الوصف</td>
+                                    <td class="specs-table__val">{{ $Product->product->product_description }}</td>
+                                </tr>
+                                @if($Product?->product?->product_category2)
+                                <tr>
+                                    <td class="specs-table__key">التصنيف</td>
+                                    <td class="specs-table__val">{{ $Product->product->product_category2 }}</td>
+                                </tr>
+                                @endif
+                            </table>
+                            @else
+                            <p class="text-muted p-3">لا توجد مواصفات متاحة</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- الآراء --}}
+            <div class="accordion specs-accordion" id="reviewsAccordion">
+                <div class="accordion-item border-0">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button specs-accordion__btn"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#reviewsContent">
+                            <i class="bi bi-chat-square-text me-2"></i>
+                            الآراء ({{ $reviewsCount ?? 0 }})
+                        </button>
+                    </h2>
+                    <div id="reviewsContent" class="accordion-collapse collapse show">
+                        <div class="accordion-body">
+                            @forelse($Reviews ?? [] as $review)
+                            <div class="review-item">
+                                <div class="review-item__header">
+                                    <span class="review-item__name">{{ $review->customer?->customer_name ?? 'مجهول' }}</span>
+                                    <div class="review-item__stars">
+                                        @for($i = 1; $i <= 5; $i++)
+                                        <i class="bi bi-star-fill {{ $i <= $review->customerproductcomment_rating ? 'text-warning' : 'text-muted' }}"></i>
+                                        @endfor
+                                    </div>
+                                </div>
+                                <p class="review-item__text">{{ $review->customerproductcomment_comment }}</p>
+                            </div>
+                            @empty
+                            <p class="text-muted">لا توجد آراء بعد</p>
+                            @endforelse
+
+                            {{-- إضافة رأي --}}
+                            @if(session('customer_phone'))
+                            <div class="add-review mt-4">
+                                <h5 class="mb-3">أضف رأيك</h5>
+                                <form method="POST"
+                                      action="{{ route('CustomerAddProductCommentPost', $Product?->ecommerceproduct_id) }}">
+                                    @csrf
+                                    <div class="star-rating mb-3">
+                                        @for($i = 5; $i >= 1; $i--)
+                                        <input type="radio" name="rating" id="star{{ $i }}" value="{{ $i }}">
+                                        <label for="star{{ $i }}"><i class="bi bi-star-fill"></i></label>
+                                        @endfor
+                                    </div>
+                                    <textarea name="comment" class="form-control mb-3"
+                                              rows="3" placeholder="اكتب رأيك هنا..." required></textarea>
+                                    <button type="submit" class="btn hero__btn">إرسال</button>
+                                </form>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {{-- ════════════════════ منتجات بديلة ════════════════════ --}}
+    @if(isset($SimilarProducts) && $SimilarProducts->count())
+    <div class="mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <a href="{{ route('EcommerceAllProducts') }}" class="section-more-link">
+                <i class="bi bi-arrow-right"></i>
+                عرض المزيد
+            </a>
+            <h2 class="section-title mb-0">منتجات بديلة</h2>
+        </div>
+        <div class="products-grid">
+            @foreach($SimilarProducts as $ep)
+            <x-product-card
+                :id="$ep->ecommerceproduct_id"
+                :name="$ep->product?->product_name ?? ''"
+                :price="$ep->product?->product_sellprice ?? 0"
+                :offer-price="$ep->product?->product_offerprice ?? null"
+                :image="$ep->product?->product_image ?? ''"
+                route="ProductDetails"
+                :has-offer="($ep->product?->product_offerprice ?? 0) > 0"
+            />
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+</div>
+
+@endsection
+
+@section('scripts')
+<script>
+// ── تغيير الصورة الرئيسية --
+function changeImage(src, btn) {
+    document.getElementById('mainProductImg').src = src;
+    document.querySelectorAll('.product-gallery__thumb').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+// ── تغيير الكمية ──
+function changeQty(delta) {
+    const input   = document.getElementById('qtyInput');
+    const hidden  = document.getElementById('hiddenQty');
+    const max     = parseInt(input.max) || 99;
+    let   val     = parseInt(input.value) + delta;
+    if (val < 1) val = 1;
+    if (val > max) val = max;
+    input.value  = val;
+    if(hidden) hidden.value = val;
+}
+</script>
+@endsection
+
+
+
+
+
+صفحة السلة
+blade{{-- resources/views/ShoppingCart/index.blade.php --}}
+@extends('layouts.app')
+
+@section('title', 'سلة التسوق — ' . ($ecommerceSharedData['branchName'] ?? ''))
+
+@section('content')
+
+<x-page-header
+    title="سلة التسوق"
+    :breadcrumbs="[
+        ['name' => 'الرئيسية', 'url' => route('home')],
+        ['name' => 'سلة التسوق', 'url' => route('ShoppingCart')],
+    ]"
+/>
+
+
+<div class="container py-4">
+
+    @if(isset($CartItems) && count($CartItems) > 0)
+
+    {{-- ════════════ السلة فيها منتجات ════════════ --}}
+    <div class="row g-4">
+
+        {{-- المنتجات --}}
+        <div class="col-lg-8">
+
+            {{-- عدد المنتجات --}}
+            <div class="cart-header mb-3">
+                <span class="fw-semibold">عدد المنتجات: {{ count($CartItems) }}</span>
+            </div>
+
+
+
+            {{-- قائمة المنتجات --}}
+            <div class="d-flex flex-column gap-3">
+                @foreach($CartItems as $item)
+                <div class="cart-item">
+
+                    {{-- الصورة --}}
+                    <a href="{{ route('ProductDetails', $item->customerrequestproduct_productname) }}"
+                       class="cart-item__img-wrap">
+                        <img src="{{ asset('images/products/' . ($item->product?->product_image ?? 'placeholder.png')) }}"
+                             alt="{{ $item->customerrequestproduct_productname }}"
+                             loading="lazy">
+                    </a>
+
+                    {{-- البيانات --}}
+                    <div class="cart-item__info">
+                        <h3 class="cart-item__name">
+                            {{ $item->customerrequestproduct_productname }}
+                        </h3>
+                        <div class="cart-item__price">
+                            {{ number_format($item->customerrequestproduct_productsellprice ?? 0) }} ج.م
+                        </div>
+                    </div>
+
+                    {{-- الكمية --}}
+                    <div class="cart-item__qty">
+                        <form method="POST" action="{{ route('CustomerRequestDecreaseQuantityPost', $item->id) }}" class="d-inline">
+                            @csrf
+                            <button class="qty-btn" type="submit">
+                                <i class="bi bi-dash"></i>
+                            </button>
+                        </form>
+
+                        <span class="qty-display">{{ $item->customerrequestproduct_productquantity }}</span>
+
+                        <form method="POST" action="{{ route('CustomerRequestIncreseQuantityPost', $item->id) }}" class="d-inline">
+                            @csrf
+                            <button class="qty-btn" type="submit">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </form>
+                    </div>
+
+                    {{-- المجموع + حذف --}}
+                    <div class="cart-item__total">
+                        <span>{{ number_format(($item->customerrequestproduct_productsellprice ?? 0) * ($item->customerrequestproduct_productquantity ?? 1)) }} ج.م</span>
+                        <form method="POST" action="{{ route('CustomerRequestDeletePost', $item->id) }}">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-link text-danger p-0 ms-2" title="حذف">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+
+                </div>
+                @endforeach
+            </div>
+
+        </div>
+
+
+
+        {{-- ملخص الطلب --}}
+        <div class="col-lg-4">
+            <div class="cart-summary">
+                <h3 class="cart-summary__title">إجمالي الطلب</h3>
+
+                <div class="cart-summary__row">
+                    <span>المجموع</span>
+                    <span>{{ number_format($subtotal ?? 0) }} ج.م</span>
+                </div>
+                <div class="cart-summary__row">
+                    <span>الشحن</span>
+                    <span class="text-success">مجاناً</span>
+                </div>
+                <div class="cart-summary__row cart-summary__total">
+                    <span>الإجمالي</span>
+                    <span>{{ number_format($subtotal ?? 0) }} ج.م</span>
+                </div>
+
+                <button class="btn hero__btn w-100 mt-3">
+                    متابعة الشراء
+                </button>
+
+                <a href="{{ route('EcommerceAllProducts') }}" class="btn btn-outline-secondary w-100 mt-2">
+                    متابعة التسوق
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+
+
+    {{-- منتجات ممكن تحبها --}}
+    @if(isset($SuggestedProducts) && $SuggestedProducts->count())
+    <div class="mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <a href="{{ route('EcommerceAllProducts') }}" class="section-more-link">
+                <i class="bi bi-arrow-right"></i>
+                عرض المزيد
+            </a>
+            <h2 class="section-title mb-0">منتجات قد تحبها</h2>
+        </div>
+
+        {{-- Horizontal Scroll على الموبايل --}}
+        <div class="suggested-products-scroll">
+            @foreach($SuggestedProducts as $ep)
+            <div class="suggested-product-item">
+                <x-product-card
+                    :id="$ep->ecommerceproduct_id"
+                    :name="$ep->product?->product_name ?? ''"
+                    :price="$ep->product?->product_sellprice ?? 0"
+                    :offer-price="$ep->product?->product_offerprice ?? null"
+                    :image="$ep->product?->product_image ?? ''"
+                    route="ProductDetails"
+                    :has-offer="false"
+                />
+            </div>
+            @endforeach
+        </div>
+
+        {{-- Pagination منتجات السلة --}}
+        @if(isset($SuggestedProducts) && method_exists($SuggestedProducts, 'hasPages') && $SuggestedProducts->hasPages())
+        <div class="d-flex justify-content-center gap-2 mt-3">
+            <a href="{{ $SuggestedProducts->previousPageUrl() ?? '#' }}" class="pagination-btn">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="{{ $SuggestedProducts->nextPageUrl() ?? '#' }}" class="pagination-btn">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </div>
+        @endif
+    </div>
+    @endif
+
+
+    @else
+
+
+    {{-- ════════════ السلة فاضية ════════════ --}}
+    <div class="cart-empty text-center py-5">
+        <i class="bi bi-basket" style="font-size: 4rem; color: var(--text); opacity: .4"></i>
+        <h3 class="mt-3">سلة التسوق الخاصة بك فارغة</h3>
+        <p class="text-muted mb-4">
+            اضغط على زر اضافة الى السلة لإضافة منتجاتك المفضلة
+        </p>
+        <a href="{{ route('EcommerceAllProducts') }}" class="btn hero__btn">
+            تسوق الآن
+        </a>
+    </div>
+
+
+    {{-- منتجات مقترحة حتى لو السلة فاضية --}}
+    @if(isset($SuggestedProducts) && $SuggestedProducts->count())
+    <div class="mt-4">
+        <h2 class="section-title text-end mb-4">منتجات شاهدها مؤخراً</h2>
+        <div class="products-grid">
+            @foreach($SuggestedProducts as $ep)
+            <x-product-card
+                :id="$ep->ecommerceproduct_id"
+                :name="$ep->product?->product_name ?? ''"
+                :price="$ep->product?->product_sellprice ?? 0"
+                :offer-price="null"
+                :image="$ep->product?->product_image ?? ''"
+                route="ProductDetails"
+                :has-offer="false"
+            />
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    @endif
+
+</div>
+
+@endsection
+
+
+
+
+
+CSS للصفحات الثلاثة
+css/* public/css/products.css */
+
+/* ── Page Header ── */
+.page-header {
+    background: var(--bg-secondary);
+    padding-block: 1.75rem;
+    border-bottom: 1px solid var(--stroke);
+    margin-bottom: 0;
+}
+.page-header__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: .4rem;
+}
+.breadcrumb-item a { color: var(--primary); }
+.breadcrumb-item.active { color: var(--text); }
+
+/* ── Filter Sidebar ── */
+.filter-card {
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+.filter-card__header {
+    padding: .75rem 1rem;
+    font-weight: 600;
+    font-size: .9rem;
+    color: var(--heading);
+    background: var(--bg-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+.filter-card__body {
+    padding: .75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+.filter-count {
+    background: var(--bg-secondary);
+    border-radius: 99px;
+    font-size: .75rem;
+    padding: .1rem .5rem;
+    color: var(--text);
+}
+.price-range {
+    width: 100%;
+    accent-color: var(--primary);
+}
+.color-swatches { display: flex; gap: .5rem; flex-wrap: wrap; }
+.color-swatch {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform var(--transition);
+    outline: none;
+    border: 2px solid transparent;
+}
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.active { border-color: var(--primary); }
+
+/* ── Toolbar ── */
+.products-toolbar {
+    background: var(--white);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    padding: .6rem 1rem;
+}
+.toolbar-sort {
+    min-width: 140px;
+    font-size: .9rem;
+}
+.products-count { font-size: .9rem; }
+.view-toggle { display: flex; gap: .25rem; }
+.view-btn {
+    background: none;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-sm);
+    padding: .3rem .5rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
+}
+.view-btn.active,
+.view-btn:hover { background: var(--primary); color: var(--white); border-color: var(--primary); }
+
+/* ── Products Grid Variants ── */
+/* List View */
+.products-grid--list { grid-template-columns: 1fr !important; }
+.products-grid--list .product-card {
+    flex-direction: row;
+    align-items: center;
+}
+.products-grid--list .product-card__img-wrap {
+    width: 120px;
+    flex-shrink: 0;
+    aspect-ratio: 1;
+}
+/* Mobile Single Column */
+@media (max-width: 575px) {
+    .products-grid--single { grid-template-columns: 1fr !important; }
+}
+
+/* ── Pagination ── */
+.pagination-btn {
+    min-width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    color: var(--heading);
+    font-size: .9rem;
+    text-decoration: none;
+    transition: background var(--transition), color var(--transition);
+    cursor: pointer;
+    padding-inline: .75rem;
+}
+.pagination-btn:hover:not(:disabled),
+.pagination-btn.active {
+    background: var(--primary);
+    color: var(--white);
+    border-color: var(--primary);
+}
+.pagination-btn:disabled { opacity: .5; cursor: not-allowed; }
+css/* public/css/product-details.css */
+
+/* ── Gallery ── */
+.product-gallery__main {
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--white);
+    margin-bottom: .75rem;
+}
+.product-gallery__img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: transform .35s ease;
+}
+.product-gallery__main:hover .product-gallery__img { transform: scale(1.04); }
+
+.product-gallery__thumbs { display: flex; gap: .5rem; flex-wrap: wrap; }
+.product-gallery__thumb {
+    width: 64px; height: 64px;
+    border: 2px solid var(--stroke);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    transition: border-color var(--transition);
+}
+.product-gallery__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.product-gallery__thumb.active,
+.product-gallery__thumb:hover { border-color: var(--primary); }
+
+
+
+
+
+/* ── Product Detail ── */
+.product-detail__rating { display: flex; align-items: center; gap: .2rem; font-size: .9rem; }
+.product-detail__name { font-size: clamp(1.2rem, 2.5vw, 1.6rem); font-weight: 700; color: var(--heading); margin-bottom: .5rem; }
+.product-detail__desc { font-size: .9rem; color: var(--text); line-height: 1.8; margin-bottom: 1rem; }
+
+.product-detail__prices { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.product-detail__price { font-size: 1.6rem; font-weight: 800; color: var(--heading); }
+.product-detail__old-price { font-size: 1rem; color: var(--text); text-decoration: line-through; }
+.product-detail__discount-badge {
+    background: var(--red);
+    color: var(--white);
+    font-size: .75rem;
+    font-weight: 700;
+    padding: .2rem .6rem;
+    border-radius: 99px;
+}
+
+.product-detail__actions { display: flex; align-items: center; gap: .75rem; }
+.quantity-control { display: flex; align-items: center; border: 1px solid var(--stroke); border-radius: var(--radius-md); overflow: hidden; }
+.qty-btn { background: var(--bg-secondary); border: none; width: 36px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background var(--transition); color: var(--heading); }
+.qty-btn:hover { background: var(--primary); color: var(--white); }
+.qty-input { border: none; text-align: center; width: 48px; font-weight: 600; color: var(--heading); background: var(--white); font-size: 1rem; }
+.qty-display { padding-inline: 1rem; font-weight: 600; color: var(--heading); }
+
+.wishlist-btn { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+
+.product-detail__payment { padding-top: 1rem; border-top: 1px solid var(--stroke); }
+
+/* ── Related Products Sidebar ── */
+.sidebar-title { font-size: 1rem; font-weight: 700; color: var(--heading); }
+.related-product-card { display: flex; gap: .75rem; align-items: center; text-decoration: none; padding: .5rem; border-radius: var(--radius-sm); transition: background var(--transition); }
+.related-product-card:hover { background: var(--bg-secondary); }
+.related-product-card img { width: 64px; height: 64px; object-fit: contain; border-radius: var(--radius-sm); border: 1px solid var(--stroke); }
+.related-product-card__name { font-size: .82rem; color: var(--heading); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: .25rem; }
+.related-product-card__price { font-size: .85rem; font-weight: 700; color: var(--primary); }
+
+/* ── Specs Table ── */
+.specs-accordion__btn { font-weight: 600; color: var(--heading); background: var(--bg-secondary); }
+.specs-accordion__btn:not(.collapsed) { background: var(--primary); color: var(--white); box-shadow: none; }
+.specs-table { width: 100%; border-collapse: collapse; }
+.specs-table tr { border-bottom: 1px solid var(--stroke); }
+.specs-table tr:last-child { border-bottom: none; }
+.specs-table__key { padding: .6rem 1rem; font-weight: 600; color: var(--heading); width: 35%; background: var(--bg-secondary); font-size: .88rem; }
+.specs-table__val { padding: .6rem 1rem; color: var(--text); font-size: .88rem; }
+
+/* ── Reviews ── */
+.review-item { padding: 1rem 0; border-bottom: 1px solid var(--stroke); }
+.review-item:last-child { border-bottom: none; }
+.review-item__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
+.review-item__name { font-weight: 600; color: var(--heading); font-size: .9rem; }
+.review-item__text { color: var(--text); font-size: .88rem; line-height: 1.7; margin: 0; }
+.star-rating { display: flex; flex-direction: row-reverse; gap: .3rem; }
+.star-rating input { display: none; }
+.star-rating label { cursor: pointer; font-size: 1.4rem; color: #ddd; transition: color var(--transition); }
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label { color: #fbbf24; }
+css/* public/css/cart.css */
+
+
+
+
+
+
+/* ── Cart Item ── */
+.cart-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--white);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    transition: box-shadow var(--transition);
+}
+.cart-item:hover { box-shadow: var(--shadow-sm); }
+
+.cart-item__img-wrap { flex-shrink: 0; }
+.cart-item__img-wrap img {
+    width: 80px; height: 80px;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--stroke);
+}
+
+.cart-item__info { flex: 1; min-width: 0; }
+.cart-item__name {
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--heading);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: .25rem;
+}
+.cart-item__price { font-size: .85rem; color: var(--text); }
+
+.cart-item__qty { display: flex; align-items: center; gap: .5rem; flex-shrink: 0; }
+
+.cart-item__total {
+    text-align: end;
+    flex-shrink: 0;
+    font-weight: 700;
+    color: var(--heading);
+    font-size: .95rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .25rem;
+}
+
+/* ── Cart Summary ── */
+.cart-summary {
+    background: var(--white);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    position: sticky;
+    top: 90px;
+}
+.cart-summary__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 1rem;
+    padding-bottom: .75rem;
+    border-bottom: 1px solid var(--stroke);
+}
+.cart-summary__row {
+    display: flex;
+    justify-content: space-between;
+    padding-block: .5rem;
+    font-size: .9rem;
+    color: var(--text);
+}
+.cart-summary__total {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--heading);
+    border-top: 1px solid var(--stroke);
+    padding-top: .75rem;
+    margin-top: .25rem;
+}
+
+/* ── Cart Empty ── */
+.cart-empty { padding-block: 5rem; }
+.cart-header { font-size: .95rem; color: var(--text); }
+
+/* ── Suggested Products ── */
+.suggested-products-scroll {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: .5rem;
+}
+@media (max-width: 991px) { .suggested-products-scroll { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 575px) {
+    .suggested-products-scroll {
+        grid-template-columns: repeat(2, minmax(160px, 1fr));
+        overflow-x: scroll;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+    }
+    .suggested-product-item { scroll-snap-align: start; }
+}
+
+/* ── Responsive Cart ── */
+@media (max-width: 575px) {
+    .cart-item { flex-wrap: wrap; }
+    .cart-item__img-wrap img { width: 60px; height: 60px; }
+    .cart-item__total { flex-direction: row; align-items: center; gap: .5rem; width: 100%; justify-content: space-between; }
+}
+
+
+
+اللي هتضيفه في الـ Layout
+blade{{-- في layouts/app.blade.php --}}
+{{-- حط الـ CSS الجديد --}}
+<link rel="stylesheet" href="{{ asset('css/bootstrap-icons.css') }}">
+<link rel="stylesheet" href="{{ asset('css/products.css') }}">
+<link rel="stylesheet" href="{{ asset('css/product-details.css') }}">
+<link rel="stylesheet" href="{{ asset('css/cart.css') }}">
+
+اللي هتغيره لما ترجع الشغل
+
+
+
+
+في صفحة المنتجات — في الـ controller أضف:
+php// ← FilterCategories للـ sidebar
+$data['FilterCategories'] = Category::withCount(['products' => fn($q) =>
+    $q->where('product_delete', 0)
+])->where('category_displaystatus', 1)->get();
+
+// ← FilterBrands
+$data['FilterBrands'] = MaintenanceCompany::where('maintenancecompany_active', 1)->get();
+
+// ← Products مع الفلترة
+$data['Products'] = EcommerceProduct::where('ecommerceproduct_displaystatus', 1)
+    ->with('product')
+    ->when(request('category'), fn($q, $cats) =>
+        $q->whereHas('product', fn($p) => $p->whereIn('product_category', $cats))
+    )
+    ->when(request('sort') === 'price_asc', fn($q) =>
+        $q->join('products', 'ecommerceproducts.product_id', '=', 'products.product_id')
+          ->orderBy('products.product_sellprice')
+    )
+    ->paginate(12);
+
+
+
+
+في صفحة التفاصيل — في الـ controller أضف:
+php$data['Reviews']       = CustomerProductComment::where('customerproductcomment_productname', $product->product->product_name)->where('customerproductcomment_visibility', 1)->get();
+$data['reviewsCount']  = $data['Reviews']->count();
+$data['avgRating']     = $data['Reviews']->avg('customerproductcomment_rating') ?? 0;
+$data['RelatedProducts'] = EcommerceProduct::where('ecommerceproduct_displaystatus', 1)->with('product')->take(4)->get();
+$data['SimilarProducts'] = EcommerceProduct::where('ecommerceproduct_displaystatus', 1)->with('product')->take(8)->get();
+
+
+
+
+في صفحة السلة — في الـ controller أضف:
+php// ← CartItems بتيجي من customerrequestproducts
+$data['CartItems'] = CustomerRequestProduct::where('customerrequestproduct_customeraccount', session('customer_account'))
+    ->where('customerrequestproduct_billstatus', 0)
+    ->with('product')
+    ->get();
+$data['subtotal'] = $data['CartItems']->sum(fn($i) => ($i->customerrequestproduct_productsellprice ?? 0) * ($i->customerrequestproduct_productquantity ?? 1));
+$data['SuggestedProducts'] = EcommerceProduct::where('ecommerceproduct_displaystatus', 1)->with('product')->inRandomOrder()->take(8)->get();

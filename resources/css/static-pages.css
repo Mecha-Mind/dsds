@@ -1,0 +1,442 @@
+/* 
+ * ═══════════════════════════════════════════════════════════════
+ * Static Pages Styles - أنماط الصفحات الثابتة
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+:root {
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --pink-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --cyan-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --primary-color: #667eea;
+  --secondary-color: #f5576c;
+  --text-dark: #333;
+  --text-light: #666;
+  --bg-light: #f8f9fa;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ► صفحة من نحن (About) */
+/* ═══════════════════════════════════════════════════════════════ */
+
+#about-page {
+  overflow: hidden;
+}
+
+.about-hero {
+  animation: slideDown 0.6s ease-out;
+}
+
+.about-story {
+  position: relative;
+}
+
+.about-story img {
+  animation: zoomIn 0.8s ease-out;
+}
+
+.about-story h2 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.about-values {
+  position: relative;
+}
+
+.about-values [class*="col"]>div {
+  animation: fadeUp 0.6s ease-out;
+  animation-fill-mode: both;
+}
+
+.about-values [class*="col"]:nth-child(1)>div {
+  animation-delay: 0.1s;
+}
+
+.about-values [class*="col"]:nth-child(2)>div {
+  animation-delay: 0.2s;
+}
+
+.about-values [class*="col"]:nth-child(3)>div {
+  animation-delay: 0.3s;
+}
+
+.about-values [class*="col"]:nth-child(4)>div {
+  animation-delay: 0.4s;
+}
+
+.about-team {
+  position: relative;
+}
+
+.about-team [class*="col"] {
+  text-align: center;
+  animation: scaleIn 0.6s ease-out;
+  animation-fill-mode: both;
+}
+
+.about-team [class*="col"]:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.about-team [class*="col"]:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.about-team [class*="col"]:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ► صفحة تواصل معنا (Contact) */
+/* ═══════════════════════════════════════════════════════════════ */
+
+#contact-page form input,
+#contact-page form textarea,
+#contact-page form select {
+  transition: all 0.3s ease;
+}
+
+#contact-page form input:focus,
+#contact-page form textarea:focus,
+#contact-page form select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  transform: translateY(-2px);
+}
+
+#contact-page form button {
+  transition: all 0.3s ease;
+}
+
+#contact-page form button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+}
+
+.contact-hero h1 {
+  animation: slideDown 0.6s ease-out;
+}
+
+.contact-content {
+  animation: fadeUp 0.6s ease-out 0.2s both;
+}
+
+.contact-content [class*="col"]>div:nth-child(1) {
+  animation: slideInLeft 0.6s ease-out;
+}
+
+.contact-content [class*="col"]>div:nth-child(2) {
+  animation: slideInRight 0.6s ease-out;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ► صفحة الصيانة (Maintenance) */
+/* ═══════════════════════════════════════════════════════════════ */
+
+#maintenance-page .maintenance-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+#maintenance-page .maintenance-hero h1 {
+  animation: slideDown 0.8s ease-out;
+}
+
+.maintenance-services {
+  position: relative;
+}
+
+.maintenance-services .service-card {
+  animation: scaleIn 0.6s ease-out;
+  animation-fill-mode: both;
+}
+
+.maintenance-services .service-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.maintenance-services .service-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.maintenance-services .service-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.maintenance-services .service-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+.maintenance-services .service-card:nth-child(5) {
+  animation-delay: 0.5s;
+}
+
+.maintenance-services .service-card:nth-child(6) {
+  animation-delay: 0.6s;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ► صفحة عروض الصيانة (Maintenance Offers) */
+/* ═══════════════════════════════════════════════════════════════ */
+
+#maintenance-offers-page>section:nth-child(2)>div>div>div>div {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#maintenance-offers-page>section:nth-child(2)>div>div>div>div:hover {
+  transform: translateY(-15px);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+}
+
+#maintenance-offers-page>section:nth-child(2)>div>div>div>div button {
+  transition: all 0.3s ease;
+}
+
+#maintenance-offers-page>section:nth-child(2)>div>div>div>div button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ► الحركات والتأثيرات (Animations) */
+/* ═══════════════════════════════════════════════════════════════ */
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ► المظهر الحساس (Responsive) */
+/* ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .about-story .row {
+    flex-direction: column-reverse;
+  }
+
+  .about-story h2 {
+    font-size: 1.8rem !important;
+  }
+
+  .contact-content [class*="col"]>div {
+    animation: none !important;
+  }
+
+  .maintenance-services .service-card h3 {
+    font-size: 1.2rem;
+  }
+
+  .maintenance-services .service-card {
+    animation: fadeUp 0.4s ease-out !important;
+  }
+}
+
+@media (max-width: 576px) {
+  h1 {
+    font-size: 2rem !important;
+  }
+
+  h2 {
+    font-size: 1.5rem !important;
+  }
+
+  #about-page>section:first-child {
+    padding: 40px 20px !important;
+  }
+
+  .contact-content form {
+    padding: 20px !important;
+  }
+
+  .maintenance-services .service-card {
+    padding: 25px 15px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ► أنماط مساعدة (Utility Styles) */
+/* ═══════════════════════════════════════════════════════════════ */
+
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.shadow-soft {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-medium {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.shadow-hard {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.button-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Cairo', sans-serif;
+}
+
+.button-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+}
+
+.button-secondary {
+  background: var(--secondary-color);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Cairo', sans-serif;
+}
+
+.button-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(245, 87, 108, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ► تحسينات الأداء (Performance) */
+/* ═══════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════ */

@@ -1,0 +1,1597 @@
+أول حاجة — Route للـ Search API
+المسار: routes/web.php — أضف السطر ده:
+php// Search API — بيرجع JSON للـ live search
+Route::get('/api/search-products', [
+    \App\Http\Controllers\Ecommerce\Products\EcommerceAllProductsController::class,
+    'searchApi'
+])->name('api.searchProducts');
+
+تاني حاجة — Method في الـ Controller
+php// في EcommerceAllProductsController — أضف الـ method دي
+public function searchApi(Request $request)
+{
+    $search = trim($request->input('q', ''));
+
+    if (strlen($search) < 2) {
+        return response()->json(['results' => [], 'total' => 0]);
+    }
+
+    $results = EcommerceProduct::where('ecommerceproduct_displaystatus', 1)
+        ->whereHas('product', fn($q) =>
+            $q->where('product_name', 'LIKE', "%{$search}%")
+              ->orWhere('product_description', 'LIKE', "%{$search}%")
+              ->where('product_delete', 0)
+        )
+        ->with('product')
+        ->take(8)   // ← أقصى عدد في الـ dropdown
+        ->get()
+        ->map(fn($ep) => [
+            'id'          => $ep->ecommerceproduct_id,
+            'name'        => $ep->product?->product_name        ?? '',
+            'price'       => $ep->product?->product_sellprice   ?? 0,
+            'offer_price' => $ep->product?->product_offerprice  ?? null,
+            'image'       => $ep->product?->product_image       ?? '',
+            'url'         => route('ProductDetails', $ep->ecommerceproduct_id),
+        ]);
+
+    return response()->json([
+        'results' => $results,
+        'total'   => $results->count(),
+        'all_url' => route('EcommerceAllProducts', ['search' => $search]),
+    ]);
+}
+
+تالت حاجة — الـ Navbar
+أضف زرار الـ search وانت عنده في components/navbar.blade.php:
+blade{{-- في الـ navbar-icons -- غيّر الـ search link الموجود ده --}}
+{{-- قبل --}}
+<a href="{{ route('EcommerceAllProducts') }}" class="btn btn-link p-0 text-dark" aria-label="بحث">
+    <i class="bi bi-search fs-5"></i>
+</a>
+
+{{-- بعد --}}
+<button type="button"
+        class="btn btn-link p-0 text-dark nav-search-trigger"
+        id="navSearchBtn"
+        aria-label="بحث"
+        aria-haspopup="dialog"
+        aria-expanded="false">
+    <i class="bi bi-search fs-5"></i>
+</button>
+
+رابع حاجة — Search Modal
+ضيف ده قبل </body> في layouts/app.blade.php:
+blade{{-- ══════ Search Modal ══════ --}}
+<div id="searchModal"
+     class="search-modal"
+     role="dialog"
+     aria-modal="true"
+     aria-label="البحث عن منتج"
+     hidden>
+
+    {{-- Backdrop --}}
+    <div class="search-modal__backdrop" id="searchBackdrop"></div>
+
+    {{-- Panel --}}
+    <div class="search-modal__panel">
+
+        {{-- Input --}}
+        <div class="search-modal__input-wrap">
+            <i class="bi bi-search search-modal__icon" aria-hidden="true"></i>
+            <input type="search"
+                   id="searchModalInput"
+                   class="search-modal__input"
+                   placeholder="ابحث عن منتج، تصنيف، ماركة..."
+                   autocomplete="off"
+                   maxlength="100"
+                   dir="rtl">
+            <button type="button"
+                    class="search-modal__close"
+                    id="searchModalClose"
+                    aria-label="إغلاق البحث">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        {{-- Results --}}
+        <div class="search-modal__body" id="searchModalBody">
+
+            {{-- الحالة الافتراضية --}}
+            <div class="search-modal__hint" id="searchHint">
+                <i class="bi bi-lightbulb text-muted"></i>
+                <span>اكتب اسم المنتج للبحث</span>
+            </div>
+
+            {{-- Loading --}}
+            <div class="search-modal__loading d-none" id="searchLoading">
+                <div class="search-spinner"></div>
+                <span>جاري البحث...</span>
+            </div>
+
+            {{-- Results List --}}
+            <ul class="search-results" id="searchResults" role="listbox" aria-label="نتائج البحث"></ul>
+
+            {{-- No Results --}}
+            <div class="search-modal__empty d-none" id="searchEmpty">
+                <i class="bi bi-emoji-frown"></i>
+                <p>لا توجد نتائج لـ "<span id="emptyQuery"></span>"</p>
+                <a href="#" id="emptyAllLink" class="btn btn-outline-secondary btn-sm">
+                    عرض كل المنتجات
+                </a>
+            </div>
+
+            {{-- عرض الكل --}}
+            <div class="search-modal__footer d-none" id="searchFooter">
+                <a href="#" id="viewAllLink" class="search-modal__view-all">
+                    <span id="viewAllText">عرض كل النتائج</span>
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+خامس حاجة — CSS
+css/* public/css/app.css — أضف في الآخر */
+
+/* ══════════════════════════════════════
+   Search Modal
+══════════════════════════════════════ */
+
+/* Backdrop */
+.search-modal__backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .55);
+    z-index: 1049;
+    opacity: 0;
+    transition: opacity .25s ease;
+}
+
+/* Panel */
+.search-modal__panel {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    width: min(680px, 96vw);
+    max-height: 85vh;
+    background: var(--white);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transition: transform .25s ease, opacity .25s ease;
+    box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    overflow: hidden;
+}
+
+/* Open state */
+.search-modal--open .search-modal__backdrop {
+    opacity: 1;
+}
+
+.search-modal--open .search-modal__panel {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+/* مخفي تماماً لما يكون hidden --  */
+.search-modal[hidden] {
+    display: block !important; /* نخلي الـ CSS animation تشتغل */
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.search-modal--open {
+    visibility: visible !important;
+    pointer-events: auto;
+}
+
+/* Input Row */
+.search-modal__input-wrap {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--stroke);
+    gap: .75rem;
+    flex-shrink: 0;
+}
+
+.search-modal__icon {
+    color: var(--text);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.search-modal__input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 1.05rem;
+    font-family: inherit;
+    color: var(--heading);
+    background: transparent;
+    text-align: right;
+}
+
+.search-modal__input::placeholder {
+    color: var(--text);
+    opacity: .55;
+}
+
+.search-modal__close {
+    background: var(--bg-secondary);
+    border: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+    flex-shrink: 0;
+    transition: background .2s, color .2s;
+}
+
+.search-modal__close:hover {
+    background: var(--stroke);
+    color: var(--heading);
+}
+
+/* Body */
+.search-modal__body {
+    overflow-y: auto;
+    flex: 1;
+    padding: .5rem 0;
+}
+
+/* Hint */
+.search-modal__hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    padding: 2rem;
+    color: var(--text);
+    font-size: .9rem;
+}
+
+/* Loading spinner */
+.search-modal__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+    padding: 2rem;
+    color: var(--text);
+    font-size: .9rem;
+}
+
+.search-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--stroke);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Results */
+.search-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    gap: .875rem;
+    padding: .625rem 1.25rem;
+    text-decoration: none;
+    color: inherit;
+    transition: background .15s;
+    cursor: pointer;
+}
+
+.search-result-item:hover,
+.search-result-item:focus,
+.search-result-item[aria-selected="true"] {
+    background: var(--bg-secondary);
+    outline: none;
+}
+
+.search-result-item__img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--stroke);
+    flex-shrink: 0;
+    background: var(--white);
+}
+
+.search-result-item__info {
+    flex: 1;
+    min-width: 0;
+    text-align: right;
+}
+
+.search-result-item__name {
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--heading);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: .15rem;
+}
+
+/* تمييز نص البحث */
+.search-result-item__name mark {
+    background: transparent;
+    color: var(--primary);
+    font-weight: 700;
+    padding: 0;
+}
+
+.search-result-item__price {
+    font-size: .82rem;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.search-result-item__old-price {
+    font-size: .78rem;
+    color: var(--text);
+    text-decoration: line-through;
+    margin-inline-start: .4rem;
+}
+
+.search-result-item__arrow {
+    color: var(--text);
+    font-size: .85rem;
+    flex-shrink: 0;
+    opacity: .5;
+}
+
+/* Empty */
+.search-modal__empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text);
+}
+
+.search-modal__empty i {
+    font-size: 2.5rem;
+    opacity: .4;
+    display: block;
+    margin-bottom: .75rem;
+}
+
+.search-modal__empty p {
+    font-size: .9rem;
+    margin-bottom: 1rem;
+}
+
+/* Footer */
+.search-modal__footer {
+    border-top: 1px solid var(--stroke);
+    padding: .75rem 1.25rem;
+    flex-shrink: 0;
+}
+
+.search-modal__view-all {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--primary);
+    font-size: .9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: gap .2s;
+}
+
+.search-modal__view-all:hover {
+    gap: .5rem;
+}
+
+/* Responsive */
+@media (max-width: 575px) {
+    .search-modal__panel {
+        width: 100vw;
+        border-radius: 0;
+        max-height: 100dvh;
+    }
+}
+
+سادس حاجة — JavaScript
+ضيف ده في layouts/app.blade.php قبل </body> وبعد الـ modal HTML:
+html<script>
+(function () {
+    'use strict';
+
+    var SEARCH_URL  = '{{ route("api.searchProducts") }}';
+    var ALL_URL     = '{{ route("EcommerceAllProducts") }}';
+    var IMG_BASE    = '{{ asset("images/products/") }}/';
+
+    var modal       = document.getElementById('searchModal');
+    var panel       = modal?.querySelector('.search-modal__panel');
+    var backdrop    = document.getElementById('searchBackdrop');
+    var input       = document.getElementById('searchModalInput');
+    var closeBtn    = document.getElementById('searchModalClose');
+    var trigger     = document.getElementById('navSearchBtn');
+    var hint        = document.getElementById('searchHint');
+    var loading     = document.getElementById('searchLoading');
+    var results     = document.getElementById('searchResults');
+    var empty       = document.getElementById('searchEmpty');
+    var emptyQuery  = document.getElementById('emptyQuery');
+    var emptyLink   = document.getElementById('emptyAllLink');
+    var footer      = document.getElementById('searchFooter');
+    var viewAllLink = document.getElementById('viewAllLink');
+    var viewAllText = document.getElementById('viewAllText');
+
+    if (!modal || !trigger) return;
+
+    var debounce;
+    var controller;
+    var isOpen = false;
+
+    // ── فتح ──
+    function openModal() {
+        modal.removeAttribute('hidden');
+        // requestAnimationFrame عشان الـ transition يشتغل
+        requestAnimationFrame(function() {
+            modal.classList.add('search-modal--open');
+        });
+        input.focus();
+        isOpen = true;
+        trigger.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // ── إغلاق ──
+    function closeModal() {
+        modal.classList.remove('search-modal--open');
+        isOpen = false;
+        trigger.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+
+        // بعد الـ transition
+        setTimeout(function() {
+            modal.setAttribute('hidden', '');
+            input.value = '';
+            resetUI();
+        }, 260);
+    }
+
+    function resetUI() {
+        hint.classList.remove('d-none');
+        loading.classList.add('d-none');
+        results.innerHTML = '';
+        empty.classList.add('d-none');
+        footer.classList.add('d-none');
+        if (controller) controller.abort();
+    }
+
+    // ── show/hide helpers ──
+    function showLoading() {
+        hint.classList.add('d-none');
+        loading.classList.remove('d-none');
+        results.innerHTML = '';
+        empty.classList.add('d-none');
+        footer.classList.add('d-none');
+    }
+
+    function showResults(data, query) {
+        loading.classList.add('d-none');
+
+        if (!data.results || data.results.length === 0) {
+            empty.classList.remove('d-none');
+            emptyQuery.textContent = query;
+            emptyLink.href = ALL_URL + '?search=' + encodeURIComponent(query);
+            return;
+        }
+
+        results.innerHTML = data.results.map(function(item) {
+            var name    = escapeHtml(item.name);
+            var marked  = highlightText(name, query);
+            var price   = Number(item.price).toLocaleString('ar-EG');
+            var hasOffer= item.offer_price && item.offer_price < item.price;
+            var imgSrc  = item.image
+                ? '{{ asset("images/products") }}/' + escapeHtml(item.image)
+                : '';
+
+            return '<li role="option">'
+                + '<a class="search-result-item" href="' + escapeHtml(item.url) + '">'
+                + (imgSrc
+                    ? '<img class="search-result-item__img" src="' + imgSrc + '" alt="' + name + '" loading="lazy">'
+                    : '<div class="search-result-item__img" style="background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;"><i class="bi bi-image" style="opacity:.4"></i></div>')
+                + '<div class="search-result-item__info">'
+                + '<div class="search-result-item__name">' + marked + '</div>'
+                + '<div>'
+                + '<span class="search-result-item__price">' + (hasOffer ? Number(item.offer_price).toLocaleString('ar-EG') : price) + ' ج.م</span>'
+                + (hasOffer ? '<span class="search-result-item__old-price">' + price + '</span>' : '')
+                + '</div>'
+                + '</div>'
+                + '<i class="bi bi-arrow-left search-result-item__arrow"></i>'
+                + '</a>'
+                + '</li>';
+        }).join('');
+
+        footer.classList.remove('d-none');
+        viewAllLink.href = data.all_url;
+        viewAllText.textContent = 'عرض كل النتائج (' + data.total + ')';
+    }
+
+    // ── تمييز نص البحث ──
+    function highlightText(text, query) {
+        if (!query) return text;
+        var escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return text.replace(new RegExp('(' + escaped + ')', 'gi'), '<mark>$1</mark>');
+    }
+
+    // ── XSS protection ──
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // ── Fetch ──
+    function doSearch(query) {
+        if (controller) controller.abort();
+        controller = new AbortController();
+
+        showLoading();
+
+        fetch(SEARCH_URL + '?q=' + encodeURIComponent(query), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            signal: controller.signal,
+        })
+        .then(function(res) {
+            if (!res.ok) throw new Error('error');
+            return res.json();
+        })
+        .then(function(data) {
+            loading.classList.add('d-none');
+            showResults(data, query);
+        })
+        .catch(function(err) {
+            if (err.name === 'AbortError') return;
+            loading.classList.add('d-none');
+            hint.classList.remove('d-none');
+        });
+    }
+
+    // ── Events ──
+    trigger.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', closeModal);
+
+    // Keyboard
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && isOpen) {
+            closeModal();
+            return;
+        }
+
+        // Arrow keys navigation في الـ results
+        if (!isOpen) return;
+        var items = results.querySelectorAll('.search-result-item');
+        if (!items.length) return;
+
+        var focused = results.querySelector('[aria-selected="true"]');
+        var idx = Array.from(items).findIndex(function(el) { return el === focused; });
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            var next = items[idx + 1] || items[0];
+            if (focused) focused.removeAttribute('aria-selected');
+            next.setAttribute('aria-selected', 'true');
+            next.focus();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            var prev = items[idx - 1] || items[items.length - 1];
+            if (focused) focused.removeAttribute('aria-selected');
+            prev.setAttribute('aria-selected', 'true');
+            prev.focus();
+        } else if (e.key === 'Enter' && focused) {
+            window.location.href = focused.getAttribute('href');
+        }
+    });
+
+    input.addEventListener('input', function() {
+        var val = this.value.trim();
+        clearTimeout(debounce);
+
+        if (val.length < 2) {
+            if (controller) controller.abort();
+            resetUI();
+            return;
+        }
+
+        debounce = setTimeout(function() {
+            doSearch(val);
+        }, 350); // 350ms debounce
+    });
+
+    // Enter في الـ input → روح لصفحة النتائج
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            var val = this.value.trim();
+            if (val) {
+                window.location.href = ALL_URL + '?search=' + encodeURIComponent(val);
+            }
+        }
+    });
+
+})();
+</script>
+
+ملخص الملفات
+app/Http/Controllers/Ecommerce/Products/
+  EcommerceAllProductsController.php   ← أضف searchApi method
+
+routes/
+  web.php                              ← أضف route واحد
+
+resources/views/
+  layouts/
+    app.blade.php                      ← أضف الـ modal HTML + script
+  components/
+    navbar.blade.php                   ← غيّر زرار الـ search
+
+public/css/
+  app.css                              ← أضف الـ CSS في الآخر
+الـ search بيشتغل على كل المنتجات في الـ DB مباشرة من غير refresh، وبيدعم keyboard navigation، وآمن من XSS.You said: هو الكود دا كدا المفروض هيجيب نتيجة البحث في نفس البوب اب لما ييجي يبحث؟ ولا هتيجي في الكمبوننت في الصفحة مكان المنتجات بالظبط بس يكون اتفلترت علي نتيجة البحث؟…هو الكود دا كدا المفروض هيجيب نتيجة البحث في نفس البوب اب لما ييجي يبحث؟ ولا هتيجي في الكمبوننت في الصفحة مكان المنتجات بالظبط بس يكون اتفلترت علي نتيجة البحث؟،، 
+المطلوب ان نتيجة البحث تبان في الصفحة و ان البوب اب تكون وقت البحث فقطمش المفروض دا كدا الصح ولا ايه رأيك؟
+لو الكود مظبوط انه يجيب النتيجة ف الصفحة مش ف البوب اب عرفني بس و لو في شرح اشرحلي
+لو الكود بيجيب النتيجة  بتاعت البحث في البوب اب عدلها تكون زي المطلوب مع الشرح 
+و قولي رأيك ف الاخر
+و عاوز اعرف احنا ليه بنستخدم var في كود الجافا سكريبت ليه مش بنعرف الفاريبلز ب let or const مش المفروض كدا امان اكتر؟ و هل كود الجافاسكريبت دا افضل حاجة و امان و clean, high performance ?10:03 PMClaude responded: إجابة سريعة على أسئلتكإجابة سريعة على أسئلتك
+الكود الحالي: بيجيب النتيجة في الـ popup نفسه — قائمة dropdown صغيرة جوه الـ modal.
+اللي المطلوب: الـ modal بيفتح فقط عشان المستخدم يكتب، ولما يكتب النتائج بتظهر في الصفحة في مكان المنتجات.
+رأيي: اللي بتقوله أفضل UX بكتير. السبب:
+
+المستخدم بيشوف المنتجات بالصور والأسعار في الحجم الطبيعي
+يقدر يفلتر على النتائج بنفس الـ sidebar
+مش محتاج يعمل خطوة تانية عشان يشوف كل النتائج
+
+
+var vs let/const
+معاك حق تماماً. var قديمة وفيها مشاكل:
+javascript// var — مشاكلها
+var x = 1;
+if (true) {
+    var x = 2; // ← غلط! بتعدّل نفس الـ variable
+}
+console.log(x); // 2 — مش 1
+
+// let/const — الصح
+const x = 1;
+if (true) {
+    const x = 2; // ← x جديدة محلية للـ block
+}
+console.log(x); // 1 — صح
+
+/*
+ | القاعدة:
+ | const → لو القيمة مش هتتغير (معظم الوقت)
+ | let   → لو القيمة هتتغير (counters, loops)
+ | var   → لا تستخدمها خالص في 2024+
+*/
+الكود القديم كان بيستخدم var عشان يشتغل في متصفحات قديمة جداً — دلوقتي مفيش سبب.
+
+الكود الجديد الكامل
+javascript// في layouts/app.blade.php — استبدل الـ script القديم بالكامل
+
+(function () {
+    'use strict';
+
+    // ── Constants ──
+    const SEARCH_URL = '{{ route("api.searchProducts") }}';
+    const ALL_URL    = '{{ route("EcommerceAllProducts") }}';
+
+    // ── Elements ──
+    const modal      = document.getElementById('searchModal');
+    const input      = document.getElementById('searchModalInput');
+    const closeBtn   = document.getElementById('searchModalClose');
+    const trigger    = document.getElementById('navSearchBtn');
+    const backdrop   = document.getElementById('searchBackdrop');
+    const hint       = document.getElementById('searchHint');
+    const loadingEl  = document.getElementById('searchLoading');
+
+    // عناصر الصفحة الرئيسية
+    const productsGrid = document.getElementById('productsGrid');
+    const paginWrap    = document.getElementById('paginationWrap');
+    const countEl      = document.getElementById('productsCount');
+
+    if (!modal || !trigger) return;
+
+    // ── State ──
+    let isOpen      = false;
+    let debounce    = null;
+    let controller  = null; // AbortController للـ fetch
+
+    // ══════════════════════════════════════
+    // Modal Open / Close
+    // ══════════════════════════════════════
+    function openModal() {
+        modal.removeAttribute('hidden');
+        requestAnimationFrame(() => {
+            modal.classList.add('search-modal--open');
+        });
+        input.focus();
+        isOpen = true;
+        trigger.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        modal.classList.remove('search-modal--open');
+        isOpen = false;
+        trigger.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+
+        setTimeout(() => {
+            modal.setAttribute('hidden', '');
+            input.value = '';
+            resetModalUI();
+        }, 260);
+    }
+
+    function resetModalUI() {
+        if (hint)     hint.classList.remove('d-none');
+        if (loadingEl)loadingEl.classList.add('d-none');
+        if (controller) controller.abort();
+    }
+
+    // ══════════════════════════════════════
+    // Search — النتائج في الصفحة
+    // ══════════════════════════════════════
+
+    /*
+     | المنطق:
+     | 1. المستخدم يكتب في الـ modal input
+     | 2. بعد 350ms (debounce) بنبعت request للـ controller
+     | 3. الـ controller بيرجع JSON فيه HTML جاهز
+     | 4. بنحط الـ HTML في productsGrid في الصفحة
+     | 5. الـ modal بيتقفل تلقائي لما النتائج تظهر
+    */
+    function doSearch(query) {
+        if (!query || query.length < 2) return;
+
+        // إلغاء الـ request السابقة
+        if (controller) controller.abort();
+        controller = new AbortController();
+
+        // Loading في الـ modal
+        if (hint)      hint.classList.add('d-none');
+        if (loadingEl) loadingEl.classList.remove('d-none');
+
+        // لو الصفحة عندها grid — أبدأ تعتيمه
+        if (productsGrid) productsGrid.style.opacity = '0.4';
+
+        fetch(`${ALL_URL}?search=${encodeURIComponent(query)}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            signal: controller.signal,
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Network error');
+            return res.json();
+        })
+        .then(data => {
+            // أغلق الـ modal وحط النتائج في الصفحة
+            closeModal();
+
+            if (productsGrid) {
+                productsGrid.innerHTML    = data.html;
+                productsGrid.style.opacity = '1';
+            }
+
+            if (paginWrap) paginWrap.innerHTML = data.pagination;
+            if (countEl)   countEl.textContent  = `${data.total} منتج`;
+
+            // حدّث الـ URL عشان المستخدم يقدر يشارك الرابط
+            const newUrl = `${ALL_URL}?search=${encodeURIComponent(query)}`;
+            window.history.pushState({ search: query }, '', newUrl);
+
+            // Scroll للـ grid
+            productsGrid?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+            if (loadingEl) loadingEl.classList.add('d-none');
+            if (hint)      hint.classList.remove('d-none');
+            if (productsGrid) productsGrid.style.opacity = '1';
+        });
+    }
+
+    // ══════════════════════════════════════
+    // Events
+    // ══════════════════════════════════════
+    trigger.addEventListener('click', openModal);
+    closeBtn?.addEventListener('click', closeModal);
+    backdrop?.addEventListener('click', closeModal);
+
+    // Keyboard
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && isOpen) closeModal();
+    });
+
+    // Input — debounce 350ms
+    input?.addEventListener('input', function () {
+        const val = this.value.trim();
+        clearTimeout(debounce);
+
+        if (val.length < 2) {
+            resetModalUI();
+            return;
+        }
+
+        // أظهر loading بعد 150ms عشان ميبانش على الـ keystrokes السريعة
+        debounce = setTimeout(() => doSearch(val), 350);
+    });
+
+    // Enter → ابعت مباشرة
+    input?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            const val = input.value.trim();
+            if (val.length >= 2) {
+                clearTimeout(debounce);
+                doSearch(val);
+            }
+        }
+    });
+
+})();
+
+الـ Modal HTML — أبسط دلوقتي
+الـ modal بقى بسيط جداً لأنه مش بيعرض نتائج — بس input وloading:
+blade{{-- في layouts/app.blade.php --}}
+<div id="searchModal"
+     class="search-modal"
+     role="dialog"
+     aria-modal="true"
+     aria-label="البحث عن منتج"
+     hidden>
+
+    <div class="search-modal__backdrop" id="searchBackdrop"></div>
+
+    <div class="search-modal__panel">
+
+        {{-- Input --}}
+        <div class="search-modal__input-wrap">
+            <i class="bi bi-search search-modal__icon" aria-hidden="true"></i>
+            <input type="search"
+                   id="searchModalInput"
+                   class="search-modal__input"
+                   placeholder="ابحث عن منتج، ماركة، تصنيف..."
+                   autocomplete="off"
+                   maxlength="100"
+                   dir="rtl">
+            <button type="button"
+                    class="search-modal__close"
+                    id="searchModalClose"
+                    aria-label="إغلاق">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        {{-- Hint --}}
+        <div class="search-modal__hint" id="searchHint">
+            <i class="bi bi-search opacity-50"></i>
+            <span>اكتب حرفين على الأقل للبحث</span>
+        </div>
+
+        {{-- Loading --}}
+        <div class="search-modal__loading d-none" id="searchLoading">
+            <div class="search-spinner"></div>
+            <span>جاري البحث في المنتجات...</span>
+        </div>
+
+        {{-- شريط سريع للتصنيفات -- اختياري --}}
+        <div class="search-modal__quick">
+            <span class="search-modal__quick-label">تصفح:</span>
+            @foreach($ecommerceSharedData['navData']['categories'] ?? [] as $cat)
+            <a href="{{ route('CategoryProduct', $cat['slug']) }}"
+               class="search-modal__quick-tag">
+                {{ $cat['name'] }}
+            </a>
+            @endforeach
+        </div>
+
+    </div>
+</div>
+
+CSS الإضافي للـ Quick Tags
+css/* أضف في app.css */
+
+.search-modal__quick {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding: .75rem 1.25rem 1rem;
+    border-top: 1px solid var(--stroke);
+}
+
+.search-modal__quick-label {
+    font-size: .82rem;
+    color: var(--text);
+    flex-shrink: 0;
+}
+
+.search-modal__quick-tag {
+    font-size: .82rem;
+    padding: .25rem .75rem;
+    border: 1px solid var(--stroke);
+    border-radius: 99px;
+    color: var(--heading);
+    text-decoration: none;
+    transition: background .2s, border-color .2s;
+    white-space: nowrap;
+}
+
+.search-modal__quick-tag:hover {
+    background: var(--primary);
+    color: var(--white);
+    border-color: var(--primary);
+}
+
+رأيي النهائي
+الـ approach اللي بتعمله الأفضل لأن:
+المستخدم بيشوف النتائج في سياقها الطبيعي مع الفلترة والـ pagination. الـ modal بيبقى مجرد "entrance" للبحث. لو كنا على صفحة تانية غير صفحة المنتجات، الـ window.history.pushState هيودي المستخدم لصفحة المنتجات ويعرض النتائج. ده بالظبط اللي بتعمله مواقع زي Noon وAmazon — الـ search bar في الـ header بيودي لصفحة نتائج.
+الفرق الوحيد بين الـ approach الحالية والـ Amazon مثلاً: Amazon بيعمل refresh كامل للصفحة عشان الـ SEO. اللي بنعمله بيكون أسرع للمستخدم بس النتائج مش هتتأشر في Google.You said: هل الافضل الطريقة بتاعت امازون ولا الطريقة اللي انا عاملها و ايه الفرق بينهم؟هل الافضل الطريقة بتاعت امازون ولا الطريقة اللي انا عاملها و ايه الفرق بينهم؟
+و عاوز الحل الكامل نضيف و منسق ب الطريقة النهائية و الافضل9:35 AMClaude responded: الفرق بين الطريقتينالفرق بين الطريقتين
+Amazon (Full Page Refresh):
+
+النتائج بتتأشر في Google — كل search له URL
+المستخدم يقدر يحفظ الرابط ويشاركه
+الـ Back button بيرجع للبحث السابق صح
+أبطأ شوية للمستخدم
+
+AJAX (بدون Refresh):
+
+أسرع للمستخدم
+النتائج مش بتتأشر في Google
+الـ Back button مش بيشتغل صح دايماً
+
+الأفضل لمشروعك: طريقة Amazon — لأن المتجر محتاج SEO، والمستخدمين العرب معتادين على الـ redirect لصفحة نتائج. والسرعة الفرق مش محسوس على الـ paginate.
+المنطق النهائي:
+
+الـ modal بس عشان تكتب
+لما تضغط Enter أو تكتب وتوقف → redirect لصفحة المنتجات مع الـ search parameter
+صفحة المنتجات بتفلتر من الـ DB وتعرض النتائج
+
+
+الحل الكامل والنهائي
+1. Controller
+المسار: app/Http/Controllers/Ecommerce/Products/EcommerceAllProductsController.php
+php<?php
+
+namespace App\Http\Controllers\Ecommerce\Products;
+
+use App\Services\EcommerceSharedDataService;
+use App\Models\Product;
+use App\Models\Category;
+use Illuminate\Http\Request;
+use App\Models\EcommerceProduct;
+use App\Models\MaintenanceCompany;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Validator;
+
+class EcommerceAllProductsController extends Controller
+{
+    public function EcommerceAllProducts(Request $request)
+    {
+        $ecommerceSharedData = EcommerceSharedDataService::get();
+        $ecommerceSharedData['pageTitle'] = 'جميع المنتجات';
+
+        $PartnerCompanies = MaintenanceCompany::where('maintenancecompany_active', '1')
+            ->whereNotNull('maintenancecompany_image')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        $FilterCategories = Category::where('category_displaystatus', 1)
+            ->get()
+            ->map(function ($cat) {
+                $cat->ecommerce_products_count = EcommerceProduct
+                    ::where('ecommerceproduct_displaystatus', 1)
+                    ->whereHas('product', fn($q) =>
+                        $q->where('product_category', $cat->category_id)
+                          ->where('product_delete', 0)
+                    )->count();
+                return $cat;
+            })
+            ->filter(fn($cat) => $cat->ecommerce_products_count > 0)
+            ->values();
+
+        $FilterBrands = MaintenanceCompany::where('maintenancecompany_active', 1)->get();
+
+        $priceStats = DB::table('products')
+            ->where('product_delete', 0)
+            ->selectRaw('MIN(product_sellprice) as min_price, MAX(product_sellprice) as max_price')
+            ->first();
+
+        $minPrice = (int)($priceStats->min_price ?? 0);
+        $maxPrice = (int)($priceStats->max_price ?? 100000);
+
+        // ── Query ──
+        $query = EcommerceProduct::where('ecommerceproduct_displaystatus', 1)
+            ->with('product');
+
+        // Search
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->whereHas('product', fn($q) =>
+                $q->where(fn($sub) =>
+                    $sub->where('product_name', 'LIKE', "%{$search}%")
+                        ->orWhere('product_description', 'LIKE', "%{$search}%")
+                )->where('product_delete', 0)
+            );
+        }
+
+        // Filter category
+        if ($request->filled('category')) {
+            $query->whereHas('product', fn($q) =>
+                $q->whereIn('product_category', $request->category)
+            );
+        }
+
+        // Filter price
+        if ($request->filled('max_price')) {
+            $query->whereHas('product', fn($q) =>
+                $q->where('product_sellprice', '<=', (int)$request->max_price)
+            );
+        }
+
+        // Sort
+        if ($request->sort === 'price_asc') {
+            $query->join('products as ps', 'ecommerceproducts.product_id', '=', 'ps.product_id')
+                  ->orderBy('ps.product_sellprice', 'asc')
+                  ->select('ecommerceproducts.*');
+        } elseif ($request->sort === 'price_desc') {
+            $query->join('products as ps', 'ecommerceproducts.product_id', '=', 'ps.product_id')
+                  ->orderBy('ps.product_sellprice', 'desc')
+                  ->select('ecommerceproducts.*');
+        } else {
+            $query->orderBy('ecommerceproducts.updated_at', 'desc');
+        }
+
+        $Products = $query->paginate(12)->withQueryString();
+
+        return view(
+            'ecommerce.EcommerceAllProducts.EcommerceAllProducts',
+            compact(
+                'ecommerceSharedData',
+                'PartnerCompanies',
+                'FilterCategories',
+                'FilterBrands',
+                'Products',
+                'minPrice',
+                'maxPrice'
+            )
+        );
+    }
+
+    // باقي الـ methods بدون تغيير
+    public function EcommerceAllProductsproductineachrow()
+    {
+        // ... كما هو
+    }
+
+    public function EcommerceAllProductsserachforproductPost(Request $request)
+    {
+        // ... كما هو
+    }
+
+    public function EcommerceAllProductsserachforproductrowPost(Request $request)
+    {
+        // ... كما هو
+    }
+}
+
+2. Navbar Component
+المسار: resources/views/components/navbar.blade.php
+غيّر زرار البحث الموجود:
+blade{{-- ابحث عن السطر ده وغيّره --}}
+<button type="button"
+        class="btn btn-link p-0 text-dark"
+        id="navSearchBtn"
+        aria-label="بحث"
+        aria-haspopup="dialog"
+        aria-expanded="false">
+    <i class="bi bi-search fs-5" aria-hidden="true"></i>
+</button>
+
+3. Search Modal
+المسار: resources/views/layouts/app.blade.php
+أضف ده قبل </body> مباشرة:
+blade{{-- ══════ Search Modal ══════ --}}
+<div id="searchModal"
+     class="search-modal"
+     role="dialog"
+     aria-modal="true"
+     aria-label="البحث عن منتج"
+     hidden>
+
+    {{-- Backdrop --}}
+    <div class="search-modal__backdrop" id="searchBackdrop"></div>
+
+    {{-- Panel --}}
+    <div class="search-modal__panel">
+
+        {{-- Input Row --}}
+        <div class="search-modal__input-wrap">
+            <button type="button"
+                    class="search-modal__close"
+                    id="searchModalClose"
+                    aria-label="إغلاق البحث">
+                <i class="bi bi-x-lg"></i>
+            </button>
+
+            <input type="search"
+                   id="searchModalInput"
+                   class="search-modal__input"
+                   placeholder="ابحث عن منتج..."
+                   autocomplete="off"
+                   spellcheck="false"
+                   maxlength="100"
+                   dir="rtl">
+
+            <i class="bi bi-search search-modal__icon" aria-hidden="true"></i>
+        </div>
+
+        {{-- Hint --}}
+        <div class="search-modal__hint" id="searchHint">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <span>اكتب للبحث في المنتجات</span>
+        </div>
+
+        {{-- Loading --}}
+        <div class="search-modal__loading d-none" id="searchLoading">
+            <span class="search-spinner"></span>
+            <span>جاري البحث...</span>
+        </div>
+
+        {{-- Quick Categories --}}
+        @if(!empty($ecommerceSharedData['navData']['categories']))
+        <div class="search-modal__quick">
+            <span class="search-modal__quick-label">تصفح بالتصنيف:</span>
+            <div class="search-modal__quick-tags">
+                @foreach(array_slice($ecommerceSharedData['navData']['categories'], 0, 6) as $cat)
+                <a href="{{ route('CategoryProduct', $cat['slug']) }}"
+                   class="search-modal__quick-tag">
+                    {{ $cat['name'] }}
+                </a>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+    </div>
+</div>
+{{-- ══════ End Search Modal ══════ --}}
+
+4. JavaScript
+المسار: resources/views/layouts/app.blade.php
+أضف ده بعد الـ modal HTML مباشرة قبل </body>:
+html<script>
+(function () {
+    'use strict';
+
+    /*
+     | Search Modal — Amazon Style
+     |
+     | المنطق:
+     | 1. المستخدم يفتح الـ modal بالضغط على أيقونة البحث
+     | 2. يكتب ما يريد البحث عنه
+     | 3. لما يضغط Enter أو يوقف الكتابة 600ms → redirect لصفحة المنتجات
+     | 4. صفحة المنتجات تفلتر من الـ DB وتعرض النتائج
+     |
+     | الـ 600ms debounce طويل شوية عن قصد — عشان ما نعملش redirect
+     | وهو لسه بيكتب. لو عاوز تقصّره اعمله 400ms.
+    */
+
+    const PRODUCTS_URL = '{{ route("EcommerceAllProducts") }}';
+
+    const modal    = document.getElementById('searchModal');
+    const backdrop = document.getElementById('searchBackdrop');
+    const input    = document.getElementById('searchModalInput');
+    const closeBtn = document.getElementById('searchModalClose');
+    const trigger  = document.getElementById('navSearchBtn');
+    const hint     = document.getElementById('searchHint');
+    const loading  = document.getElementById('searchLoading');
+
+    if (!modal || !trigger || !input) return;
+
+    let isOpen    = false;
+    let debounce  = null;
+
+    // ── فتح الـ modal ──
+    function openModal() {
+        modal.removeAttribute('hidden');
+
+        // requestAnimationFrame عشان الـ CSS transition تشتغل
+        requestAnimationFrame(() => {
+            modal.classList.add('search-modal--open');
+        });
+
+        isOpen = true;
+        trigger.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+
+        // focus بعد الـ animation
+        setTimeout(() => input.focus(), 50);
+    }
+
+    // ── إغلاق الـ modal ──
+    function closeModal() {
+        modal.classList.remove('search-modal--open');
+        isOpen = false;
+        trigger.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+
+        // بعد انتهاء الـ transition
+        setTimeout(() => {
+            modal.setAttribute('hidden', '');
+            input.value = '';
+            showHint();
+        }, 260);
+    }
+
+    // ── UI States ──
+    function showHint() {
+        hint.classList.remove('d-none');
+        loading.classList.add('d-none');
+    }
+
+    function showLoading() {
+        hint.classList.add('d-none');
+        loading.classList.remove('d-none');
+    }
+
+    // ── Redirect لصفحة النتائج ──
+    function goToResults(query) {
+        if (!query || query.trim().length < 2) return;
+
+        showLoading();
+
+        // Redirect بسيط — زي Amazon
+        const url = new URL(PRODUCTS_URL);
+        url.searchParams.set('search', query.trim());
+        window.location.href = url.toString();
+    }
+
+    // ── Events ──
+    trigger.addEventListener('click', openModal);
+
+    backdrop.addEventListener('click', closeModal);
+
+    closeBtn.addEventListener('click', closeModal);
+
+    // Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isOpen) closeModal();
+    });
+
+    // Input — debounce 600ms
+    input.addEventListener('input', function () {
+        const val = this.value.trim();
+
+        clearTimeout(debounce);
+
+        if (val.length < 2) {
+            showHint();
+            return;
+        }
+
+        /*
+         | 600ms debounce — بعد ما المستخدم يوقف الكتابة
+         | بيعمل redirect تلقائي
+         | لو حابب تشيله خالص وتخلي المستخدم يضغط Enter بس،
+         | امسح الـ debounce وسيب الـ keydown بس
+        */
+        debounce = setTimeout(() => goToResults(val), 600);
+    });
+
+    // Enter — فوري بدون debounce
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            clearTimeout(debounce);
+            goToResults(input.value);
+        }
+    });
+
+})();
+</script>
+
+5. CSS
+المسار: public/css/app.css — أضف في الآخر:
+css/* ══════════════════════════════════════
+   Search Modal
+══════════════════════════════════════ */
+
+.search-modal[hidden] {
+    display: block !important;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.search-modal--open {
+    visibility: visible !important;
+    pointer-events: auto;
+}
+
+/* Backdrop */
+.search-modal__backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .5);
+    z-index: 1049;
+    opacity: 0;
+    transition: opacity .25s ease;
+}
+
+.search-modal--open .search-modal__backdrop {
+    opacity: 1;
+}
+
+/* Panel */
+.search-modal__panel {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(-16px);
+    width: min(640px, 94vw);
+    background: var(--white);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    z-index: 1050;
+    opacity: 0;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, .18);
+    overflow: hidden;
+    transition: transform .25s ease, opacity .25s ease;
+}
+
+.search-modal--open .search-modal__panel {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+/* Input Row */
+.search-modal__input-wrap {
+    display: flex;
+    align-items: center;
+    padding: .875rem 1rem;
+    gap: .75rem;
+    border-bottom: 1px solid var(--stroke);
+}
+
+.search-modal__icon {
+    color: var(--text);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    opacity: .7;
+}
+
+.search-modal__input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 1.05rem;
+    font-family: inherit;
+    color: var(--heading);
+    background: transparent;
+    min-width: 0;
+}
+
+.search-modal__input::placeholder {
+    color: var(--text);
+    opacity: .5;
+}
+
+/* مهم — بيشيل الـ X الافتراضي من الـ search input */
+.search-modal__input::-webkit-search-cancel-button { display: none; }
+
+.search-modal__close {
+    background: var(--bg-secondary);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+    flex-shrink: 0;
+    font-size: .85rem;
+    transition: background .2s, color .2s;
+}
+
+.search-modal__close:hover {
+    background: var(--stroke);
+    color: var(--heading);
+}
+
+/* Hint */
+.search-modal__hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    padding: 1.5rem;
+    color: var(--text);
+    font-size: .9rem;
+    opacity: .7;
+}
+
+/* Loading */
+.search-modal__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+    padding: 1.5rem;
+    color: var(--text);
+    font-size: .9rem;
+}
+
+.search-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--stroke);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .65s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Quick Categories */
+.search-modal__quick {
+    padding: .875rem 1rem 1rem;
+    border-top: 1px solid var(--stroke);
+}
+
+.search-modal__quick-label {
+    display: block;
+    font-size: .78rem;
+    color: var(--text);
+    opacity: .7;
+    margin-bottom: .5rem;
+    text-align: right;
+}
+
+.search-modal__quick-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    justify-content: flex-end;
+}
+
+.search-modal__quick-tag {
+    font-size: .8rem;
+    padding: .25rem .75rem;
+    border: 1px solid var(--stroke);
+    border-radius: 99px;
+    color: var(--heading);
+    text-decoration: none;
+    background: var(--bg-secondary);
+    transition: background .2s, color .2s, border-color .2s;
+    white-space: nowrap;
+}
+
+.search-modal__quick-tag:hover {
+    background: var(--primary);
+    color: var(--white);
+    border-color: var(--primary);
+}
+
+/* Mobile */
+@media (max-width: 575px) {
+    .search-modal__panel {
+        width: 100%;
+        border-radius: 0;
+        left: 0;
+        transform: translateY(-16px);
+    }
+
+    .search-modal--open .search-modal__panel {
+        transform: translateY(0);
+    }
+}
+
+6. صفحة المنتجات — أضف Search Indicator
+المسار: resources/views/ecommerce/EcommerceAllProducts/EcommerceAllProducts.blade.php
+أضف ده بعد <x-page-header> مباشرة:
+blade{{-- Search Result Indicator --}}
+@if(request()->filled('search'))
+<div class="search-indicator container mt-3">
+    <div class="search-indicator__wrap">
+        <span class="search-indicator__text">
+            <i class="bi bi-search me-1"></i>
+            نتائج البحث عن:
+            <strong>"{{ request('search') }}"</strong>
+            <span class="search-indicator__count">
+                ({{ $Products->total() }} نتيجة)
+            </span>
+        </span>
+        <a href="{{ route('EcommerceAllProducts') }}"
+           class="search-indicator__clear">
+            <i class="bi bi-x-circle me-1"></i>
+            مسح البحث
+        </a>
+    </div>
+</div>
+@endif
+وفي الـ CSS:
+css/* في products.css */
+.search-indicator__wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-secondary);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    padding: .625rem 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.search-indicator__text {
+    font-size: .9rem;
+    color: var(--text);
+}
+
+.search-indicator__text strong {
+    color: var(--heading);
+}
+
+.search-indicator__count {
+    color: var(--text);
+    opacity: .7;
+    font-size: .85rem;
+}
+
+.search-indicator__clear {
+    font-size: .85rem;
+    color: var(--red);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: opacity .2s;
+}
+
+.search-indicator__clear:hover { opacity: .7; }
+
+ملخص الملفات
+app/Http/Controllers/Ecommerce/Products/
+  EcommerceAllProductsController.php          ← معدّل
+
+resources/views/
+  layouts/
+    app.blade.php                             ← أضف modal + script
+  components/
+    navbar.blade.php                          ← غيّر زرار البحث
+  ecommerce/EcommerceAllProducts/
+    EcommerceAllProducts.blade.php            ← أضف search indicator
+
+public/css/
+  app.css                                     ← أضف modal CSS
+  products.css                                ← أضف indicator CSS
