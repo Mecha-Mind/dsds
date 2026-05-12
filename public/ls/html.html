@@ -1,0 +1,356 @@
+# دليلي الشخصي — شرح كل حاجة في المشروع ## مقدمة الملف ده خاص بيا أنا — بيشرح كل
+قرار اتخذته في المشروع، ليه اتعمل، وفين بالظبط في الكود. --- ## 1.
+EcommerceSharedDataService **الملف:**
+`app/Services/EcommerceSharedDataService.php` **ليه موجود؟** كل صفحة في الموقع
+محتاجة نفس البيانات: اسم الفرع، التليفون، اللوجو، لينكات الـ navbar، التصنيفات.
+لو كتبت نفس الكود في كل Controller هيبقى "code duplication" وصعب التعديل. الحل:
+`Service` واحدة بتجيب كل البيانات دي مرة واحدة. **الاستخدام في أي Controller:**
+```php $ecommerceSharedData = EcommerceSharedDataService::get(); ``` **الـ
+return value:** ```php [ 'branchName' => 'اسم الفرع', 'branchImage' => 'صورة
+الفرع', 'phone' => 'رقم التليفون', 'logo' => 'مسار اللوجو', 'navData' =>
+['categories' => [...], 'products' => [...]], 'staticLinks' => [...], // لينكات
+الـ navbar 'footerCategories' => [...], 'branch' => $Branch, // Object كامل من
+الـ DB 'social' => $Social, // روابط السوشيال ميديا 'mapUrl' => '#', // رابط
+الخريطة ] ``` --- ## 2. نظام السلة — Session-based Cart **الملفات:** -
+`app/Http/Controllers/Ecommerce/ShoppingCart/ShoppingCartController.php` -
+`resources/views/ecommerce/ShoppingCart/ShoppingCart.blade.php` **الفكرة
+الأساسية:** السلة محفوظة في `session('cart')` — يعني في الـ Server، مش في الـ
+Browser. لما المستخدم بيضيف منتج، بيبعت AJAX request للـ Controller، الـ
+Controller بيعدل الـ session، وبيرجع JSON. **شكل الـ Session:** ```php //
+session('cart') بيكون array زي ده [ '123' => [ // المفتاح = ecommerceproduct_id
+'id' => '123', 'name' => 'آيفون 15', 'price' => 35000, 'offer_price' => 33000,
+'image' => 'iphone15.jpg', 'quantity' => 2, ], '456' => [...], ] ``` **ليه
+session ومش DB؟** لأن السلة محتاجة تشتغل بدون تسجيل دخول. لما المستخدم يسجل دخول
+ويضغط "متابعة الشراء"، `CheckoutController::confirm()` بيحول الـ session للـ DB
+في جدول `customerrequestproducts`. **الحدود (Limits):** - `CART_MAX_ITEMS = 20`
+— أقصى عدد منتجات مختلفة - `CART_MAX_QTY = 10` — أقصى كمية لكل منتج الحد بيتطبق
+في مكانين: 1. **JavaScript** (في `layouts/app.blade.php`) — بيمنع الـ request
+قبل ما يوصل للـ Server 2. **Controller** (في
+`CustomerRequestIncreseQuantityPost`) — الحماية الحقيقية --- ## 3. الـ AJAX —
+ليه مش بنعمل Refresh؟ **الملف:** `resources/views/layouts/app.blade.php` — في
+الـ `
+<script>
+    ` في الآخر
+
+    **المشكلة القديمة:**
+    لما المستخدم بيضيف منتج للسلة، الصفحة كانت بتعمل Refresh كامل — ده بطيء وبيعمل UX سيئ.
+
+    **الحل:**
+    بنستخدم `fetch()` بدل form submit. الـ Controller بيرجع JSON بدل redirect.
+
+    **مثال على الـ Flow:**
+
+    ```
+    المستخدم يضغط "أضف للسلة"
+         ↓
+    JavaScript بيبعت POST request لـ /cart/add/{id}
+         ↓
+    ShoppingCartController::CustomerRequestIncreseQuantityPost()
+    بيضيف للـ session ويرجع:
+    { "success": true, "cart_count": 3, "message": "تمت الإضافة" }
+         ↓
+    JavaScript بيحدث عداد السلة في الـ navbar بـ textContent
+    وبيغير نص الزرار لـ "تمت الإضافة" لمدة 1.5 ثانية
+    ```
+
+    **ليه textContent وليس innerHTML؟**
+
+    ```javascript
+    // ❌ خطر — ممكن حد يحقن HTML أو JavaScript
+    el.innerHTML = data.cart_count;
+
+    // ✅ آمن — بيعرض النص كنص عادي فقط
+    el.textContent = data.cart_count;
+    ```
+
+    ---
+
+    ## 4. Delete Modal — المشكلة والحل
+
+    **الملف:** `resources/views/ecommerce/ShoppingCart/ShoppingCart.blade.php`
+
+    **المشكلة:**
+
+    ```html
+    <!-- الـ button مش جوه الـ form -->
+    <div>
+        <form id="delete-form-123">...</form>
+        <!-- form هنا -->
+        <button class="js-delete-confirm">حذف</button>
+        <!-- button هنا -->
+    </div>
+    ```
+
+    لو حاولت تعمل `btn.closest('form')` مش هيلاقي الـ form لأنهم في نفس المستوى.
+
+    **الحل:**
+
+    ```html
+    <!-- الـ form بياخد ID فريد -->
+    <form id="delete-form-123" class="d-none">...</form>
+
+    <!-- الـ button بيحمل data-form-id يساوي نفس الـ ID -->
+    <button data-form-id="delete-form-123">حذف</button>
+    ```
+
+    ```javascript
+    // الـ JS بيجيب الـ form بـ getElementById
+    const formId = btn.dataset.formId;
+    const form = document.getElementById(formId);
+    form.submit();
+    ```
+
+    **ليه `class="d-none"` على الـ form؟**
+    لأن الـ form مش محتاج يظهر — هو مجرد "carrier" للـ action والـ CSRF token. الـ submit بيحصل برمجياً.
+
+    ---
+
+    ## 5. Bootstrap Modal — مشكلة aria-hidden
+
+    **المشكلة:**
+
+    ```html
+    <!-- الـ modal في الـ HTML بياخد aria-hidden="true" -->
+    <div class="modal fade" id="deleteConfirmModal" aria-hidden="true"></div>
+    ```
+
+    لما Bootstrap بيفتح الـ modal، بيضيف `aria-hidden` على الـ body.
+    لكن لو الـ modal نفسه عنده `aria-hidden="true"` في الـ HTML، بيحصل conflict.
+
+    **الحل:**
+
+    ```javascript
+    modalEl.removeAttribute("aria-hidden"); // شيل الـ attribute قبل ما تفتح
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    ```
+
+    ---
+
+    ## 6. نظام تسجيل الدخول — OTP Flow
+
+    **الملفات:**
+
+    ```
+    CustomerLoginController::CustomerLoginPost()
+         ↓
+    NewCustomerController::NewCustomerPost()    (لو عميل جديد)
+         ↓
+    CustomerCodeController::CustomerCodePost()   (التحقق من الكود)
+         ↓
+    CustomerWelcomeController::CustomerWelcome() (صفحة الترحيب)
+    ```
+
+    **ليه التشفير؟**
+    بيانات العميل بتتنقل بين الصفحات عبر hidden inputs. لو حد فتح الـ source code يقدر يشوف الكود!
+
+    الحل: نشفر البيانات بـ `Crypt::encryptString()`:
+
+    ```php
+    $encryptedPhone = Crypt::encryptString($customer_phone);
+    // بتبعته في hidden input
+    // في الصفحة الجاية بتفكه بـ Crypt::decryptString()
+    ```
+
+    **device_hash — ليه موجود؟**
+    بيعمل fingerprint للـ device لمنع نفس الجهاز من إرسال طلبات كتير:
+
+    ```php
+    $deviceData = $fingerprint . '|' . $clientToken . '|' . $userAgent;
+    $deviceHash = hash_hmac('sha256', $deviceData, config('app.key'));
+    ```
+
+    ---
+
+    ## 7. Rate Limiting — حماية من السبام
+
+    **الملف:** `routes/web.php`
+
+    ```php
+    // 30 request per minute للسلة
+    Route::post('/cart/add/{id}', [...])
+        ->middleware('throttle:30,1');
+
+    // 5 requests per minute للـ checkout
+    Route::post('/checkout/confirm', [...])
+        ->middleware('throttle:5,1');
+
+    // 1 request per 3 seconds للـ auth
+    Route::post('/Customer/Login', [...])
+        ->middleware('throttle:1,0.05');
+    ```
+
+    **كيف تشتغل؟**
+    `throttle:X,Y` يعني X requests كل Y دقيقة.
+    `throttle:30,1` = 30 request كل دقيقة.
+    `throttle:1,0.05` = 1 request كل 3 ثواني (0.05 دقيقة × 60 ثانية = 3 ثواني).
+
+    ---
+
+    ## 8. Middleware Security
+
+    **الملف الجديد:** `app/Http/Middleware/EcommerceThrottle.php`
+
+    ```php
+    // ده بيمنع:
+    // 1. SQL Injection في الـ input fields
+    // 2. XSS في الـ GET parameters
+    // 3. Requests من Bots (عبر User-Agent check)
+    ```
+
+    **كيف تسجله؟**
+
+    ```php
+    // في app/Http/Kernel.php
+    'ecommerce.security' => \App\Http\Middleware\EcommerceThrottle::class,
+
+    // في routes/web.php
+    Route::prefix('/')->middleware(['ecommerce.security'])->group(function () {
+        // كل الـ routes هنا
+    });
+    ```
+
+    ---
+
+    ## 9. الـ Product Card Component
+
+    **الملف:** `resources/views/components/product-card.blade.php`
+
+    **Classes المهمة:**
+
+    - `js-add-to-cart` + `data-id` → الـ JavaScript بيستمع عليها ويبعت AJAX
+    - `js-wishlist-toggle` + `data-id` → نفس الفكرة للمفضلة
+    - `btn-text` → span منفصل عشان نغير النص بـ `textContent` بدل `innerHTML`
+    - `is-wishlisted` → class بتضاف لما المنتج في المفضلة (بتغير شكل القلب)
+
+    **ليه `btn-text` span منفصل؟**
+
+    ```javascript
+    // ❌ خطر
+    btn.innerHTML = '<i class="bi bi-check"></i> تمت الإضافة';
+
+    // ✅ آمن — نغير كل حاجة بشكل منفصل
+    icon.className = "bi bi-check";
+    text.textContent = "تمت الإضافة";
+    ```
+
+    ---
+
+    ## 10. EcommerceAllProductsController — تحسينات مهمة
+
+    **الملف:** `app/Http/Controllers/Ecommerce/Products/EcommerceAllProductsController.php`
+
+    **مشكلة في الكود الحالي:**
+
+    ```php
+    // ← الـ paginate بيتنفذ قبل ما كل الـ filters تتطبق
+    $Products = $query->paginate(12)->withQueryString();
+    // ثم يكمل بيبعت filters تانية! — دي bug
+    ```
+
+    **الصح:**
+
+    ```php
+    // كل الـ filters الأول
+    if ($request->filled('search')) { $query->where(...); }
+    if ($request->filled('branchs')) { $query->where(...); }
+    // ...
+
+    // ثم الـ paginate في الآخر
+    $Products = $query->paginate(12)->withQueryString();
+    ```
+
+    ---
+
+    ## 11. Security Checklist
+
+    كل request بتيجي للـ Server بنتحقق من:
+
+    | الفحص            | المكان                                                 |
+    | ---------------- | ------------------------------------------------------ |
+    | CSRF Token       | `@csrf` في كل form                                     |
+    | Input Validation | `Validator::make()` في كل Controller                   |
+    | Rate Limiting    | `throttle` middleware في الـ routes                    |
+    | SQL Injection    | Eloquent ORM بيتعامل معاها تلقائياً                    |
+    | XSS              | `textContent` في JS + `{{ }}` في Blade                 |
+    | Auth Check       | `session('customer_phone')` في الـ Controllers         |
+    | Encrypted Data   | `Crypt::encryptString()` للبيانات الحساسة              |
+    | IP Logging       | كل login بيتسجل مع الـ IP في `loginhistoriescustomers` |
+
+    ---
+
+    ## 12. قاموس المصطلحات
+
+    | المصطلح       | الشرح                                              |
+    | ------------- | -------------------------------------------------- |
+    | Session       | بيانات مؤقتة مخزنة على الـ Server مرتبطة بالمستخدم |
+    | AJAX          | طريقة لبعت requests بدون Refresh للصفحة            |
+    | CSRF Token    | رمز حماية يمنع هجمات من مواقع تانية                |
+    | Throttle      | تحديد عدد الـ requests في وقت معين                 |
+    | Middleware    | كود بيشتغل قبل أي request يوصل للـ Controller      |
+    | Eloquent      | ORM بتاع Laravel لتعامل مع الـ DB                  |
+    | Crypt         | مكتبة Laravel للتشفير وفك التشفير                  |
+    | XSS           | هجوم بحقن JavaScript في صفحات الموقع               |
+    | SQL Injection | هجوم بحقن كود SQL في الـ inputs                    |
+    | Rate Limiting | منع الـ requests الكتيرة في وقت قصير               |
+    | Fingerprint   | بصمة الجهاز لتمييزه عن الأجهزة التانية             |
+    | device_hash   | hash مشفر للجهاز يعمل كـ fingerprint               |
+
+    <!-- Happy hacking -->
+    <!-- for(let i=0; i<35; i++) {
+        fetch('/cart/add/1', {method:'POST', headers:{'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Content-Type':'application/json', 'Accept':'application/json'}})
+        .then(r => console.log(i, r.status));
+    } -->
+
+    <!-- http://127.0.0.1:8000/?search=<script>alert(1)
+</script>
+// المفروض يرجع 400 -->
+
+<!-- / افتح DevTools Console وكتب:
+fetch('/', {
+    headers: { 'User-Agent': 'sqlmap/1.0' }
+}).then(r => console.log(r.status));
+// المفروض يرجع 403 -->
+
+bot blocking شغال security headers شغالة مفيش debug leakage مفيش stack trace
+بيتسرب مفيش Laravel Ignition exposure SQLMap فعلي مش user-agent فقط. جرّب
+endpoint فيه params: sqlmap -u "http://127.0.0.1:8000/product?id=1" Upload
+bypass لو عندك uploads: جرّب: svg xss php polyglot double extensions Rate
+limiting جرّب spam requests: for i in {1..200}; do curl
+http://127.0.0.1:8000/login; done Session cookies عاوز تشوف: curl -I
+http://127.0.0.1:8000 1. اختبار Clickjacking اعمل ملف HTML خارجي:
+
+<iframe src="http://127.0.0.1:8000"></iframe>
+
+المفروض يترفض. 2. اختبار ملفات حساسة جرّب: curl http://127.0.0.1:8000/.env curl
+http://127.0.0.1:8000/storage/logs/laravel.log curl
+http://127.0.0.1:8000/composer.json كلهم لازم: 403 أو 404 3) اختبار الـ methods
+الخطيرة جرّب: curl -X TRACE http://127.0.0.1:8000 curl -X TRACK
+http://127.0.0.1:8000 4) اختبار الـ headers ضد bots جرّب: curl -A "sqlmap"
+http://127.0.0.1:8000 curl -A "nikto" http://127.0.0.1:8000 curl -A "nmap"
+http://127.0.0.1:8000 وتأكد: مفيش stack traces مفيش debug مفيش exceptions 1)
+إزالة X-Powered-By لسه ظاهر: X-Powered-By: PHP/8.2.12 اقفله فورًا. في php.ini:
+expose_php = Off ثم restart: Apache أو php-fpm أو Laragon/XAMPP ثم اختبر: curl
+-I http://127.0.0.1:8000 لازم يختفي. 2) عدل الـ CSP الحالي عندك: script-src
+'unsafe-inline' 'unsafe-eval' وده يضعف الـ CSP جدًا. الأفضل تدريجيًا حاول تقلل:
+'unsafe-eval' أولًا. لأنه أخطرهم. وبعدها حاول تقلل: 'unsafe-inline' لكن دي أصعب
+لأن: Bootstrap inline scripts Blade scripts غالبًا يعتمدوا عليها. 3) لا تمنع
+curl حاليًا أنت لسه عندك: 'curl/', وده خطر على integrations مستقبلًا. أنصحك
+تشيله. خلي فقط offensive scanners. تقييم الحماية الحالية أنت الآن محمي جيدًا ضد:
+reconnaissance sqlmap nikto nuclei scanners debug disclosure ignition stack
+traces clickjacking X-Frame-Options MIME sniffing nosniff بعض XSS vectors CSP
+path probing traversal regex لكن لسه ناقص production hardening الحقيقي وده أهم
+جزء. أهم Checklist لازم تعملها قبل اللايف APP_DEBUG في .env: APP_DEBUG=false
+إجباري. APP_ENV APP_ENV=production SESSION_SECURE_COOKIE لو HTTPS:
+SESSION_SECURE_COOKIE=true SESSION_HTTP_ONLY SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE SESSION_SAME_SITE=lax أو strict لو مناسب. منع كشف ملفات حساسة
+من السيرفر في nginx/apache: امنع: .env composer.json package.json /storage
+/vendor بعد الرفع على production اختبر: 1 curl https://yoursite.com/.env لازم:
+403 أو 404 2 curl https://yoursite.com/storage/logs/laravel.log لازم: 403/404 3
+curl -A "sqlmap" https://yoursite.com لازم: 403 نصيحة مهمة جدًا لا تعتمد على
+User-Agent فقط. أي مهاجم محترف يغيره بسهولة. دي: noise filtering وليست حماية
+أساسية الحماية الحقيقية: validation authz prepared statements upload validation
+rate limiting secure deployment بالنسبة للـ 403 page اعملها فقط: للأخطاء
+الطبيعية authorization failures لكن ليس للـ security middleware. يعني: المستخدم
+الحقيقي → يشوف صفحة 403 البوت → ياخد plain text فورًا وده اللي تعمله أغلب
+الأنظمة الاحترافية. //
+<!-- -->
